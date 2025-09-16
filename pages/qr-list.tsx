@@ -304,6 +304,23 @@ export default function QrList() {
               >
                 🔄 Refresh
               </button>
+              <button 
+                onClick={async () => {
+                  try {
+                    const response = await fetch('/api/debug/google-drive-status')
+                    const result = await response.json()
+                    console.log('Google Drive Status:', result)
+                    alert(`Google Drive Status:\nConnected: ${result.user?.googleDriveConnected}\nHas Tokens: ${result.user?.hasGoogleDriveTokens}\nHas Access Token: ${result.user?.hasAccessToken}\nToken Expired: ${result.user?.isTokenExpired}`)
+                  } catch (error) {
+                    console.error('Debug error:', error)
+                    alert('Debug failed')
+                  }
+                }}
+                className="btn btn-secondary"
+                style={{ padding: '0.75rem 1rem', marginLeft: '0.5rem' }}
+              >
+                🔍 Debug Drive
+              </button>
             </div>
           </div>
 
