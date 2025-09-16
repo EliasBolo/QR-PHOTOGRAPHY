@@ -25,6 +25,8 @@ export default function QrCreate() {
   const [createdEvent, setCreatedEvent] = useState<any>(null)
   const [showQRCode, setShowQRCode] = useState(false)
   const [qrCodeDataURL, setQrCodeDataURL] = useState<string>('')
+  const [showGoogleDriveWarning, setShowGoogleDriveWarning] = useState(false)
+  const [pendingEventData, setPendingEventData] = useState<any>(null)
 
   // Get current user on component mount
   useEffect(() => {
@@ -136,6 +138,22 @@ export default function QrCreate() {
       return
     }
     
+    // Check if Google Drive is connected
+    const savedDriveStatus = localStorage.getItem(`googleDriveConnected_${user.email}`)
+    const isDriveConnected = savedDriveStatus === 'true' || user.googleDriveConnected
+    
+    if (!isDriveConnected) {
+      // Show warning popup
+      setPendingEventData(eventData)
+      setShowGoogleDriveWarning(true)
+      return
+    }
+    
+    // Proceed with event creation
+    await createEvent(eventData)
+  }
+
+  const createEvent = async (eventData: any) => {
     setIsCreating(true)
     
     try {
@@ -175,6 +193,19 @@ export default function QrCreate() {
       alert('Failed to create event. Please try again.')
       setIsCreating(false)
     }
+  }
+
+  const handleProceedWithoutDrive = async () => {
+    setShowGoogleDriveWarning(false)
+    if (pendingEventData) {
+      await createEvent(pendingEventData)
+      setPendingEventData(null)
+    }
+  }
+
+  const handleCancelEvent = () => {
+    setShowGoogleDriveWarning(false)
+    setPendingEventData(null)
   }
 
   const handleCreateQR = async () => {
@@ -385,6 +416,40 @@ export default function QrCreate() {
           </div>
         </div>
       </main>
+
+      {/* Google Drive Warning Popup */}
+      {showGoogleDriveWarning && (
+        <div className="popup-overlay">
+          <div className="popup-content">
+            <div className="popup-header">
+              <h3>⚠️ Google Drive Not Connected</h3>
+            </div>
+            <div className="popup-body">
+              <p>
+                You haven&apos;t connected your Google Drive yet. Without Google Drive connection, 
+                uploaded photos and videos won&apos;t be automatically saved to your cloud storage.
+              </p>
+              <p>
+                <strong>We recommend connecting Google Drive first for the best experience.</strong>
+              </p>
+            </div>
+            <div className="popup-actions">
+              <button 
+                className="btn btn-secondary"
+                onClick={handleCancelEvent}
+              >
+                Cancel & Connect Drive
+              </button>
+              <button 
+                className="btn btn-primary"
+                onClick={handleProceedWithoutDrive}
+              >
+                Proceed Anyway
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }
