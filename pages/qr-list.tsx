@@ -196,6 +196,7 @@ export default function QrList() {
         const eventFolderId = result.eventFolderId
         
         // Update the event with the Google Drive folder ID
+        console.log('Updating event:', eventId, 'with folder ID:', eventFolderId)
         const updateResponse = await fetch(`/api/events/${eventId}`, {
           method: 'PUT',
           headers: {
@@ -206,6 +207,12 @@ export default function QrList() {
             status: 'active' // Also reactivate the event
           }),
         })
+        
+        console.log('Update response status:', updateResponse.status)
+        if (!updateResponse.ok) {
+          const errorResult = await updateResponse.json()
+          console.log('Update error:', errorResult)
+        }
         
         if (updateResponse.ok) {
           alert(`Event "${eventName}" has been re-activated! Google Drive folder created successfully.`)

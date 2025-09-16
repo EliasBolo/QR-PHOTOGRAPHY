@@ -47,6 +47,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (req.method === 'PUT') {
       const { name, date, description, status, googleDriveFolderId } = req.body
       
+      console.log('Updating event:', id, 'with data:', { name, date, description, status, googleDriveFolderId })
+      
       const updatedEvent = userDatabase.updateEvent(id, {
         name,
         date,
@@ -55,10 +57,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         googleDriveFolderId
       })
 
+      console.log('Update result:', updatedEvent ? 'SUCCESS' : 'FAILED')
+
       if (!updatedEvent) {
+        console.log('Event not found for update:', id)
         return res.status(404).json({ error: 'Event not found' })
       }
 
+      console.log('Event updated successfully:', updatedEvent.id, updatedEvent.name)
       return res.status(200).json({ success: true, event: updatedEvent })
     }
 
