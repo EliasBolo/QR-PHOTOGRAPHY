@@ -16,7 +16,7 @@ export default function Home() {
             QR Photography
           </h1>
           <p className="tagline">
-            Share your Wedding Experience
+            Share your Moments
           </p>
           <div className="auth-buttons">
             <Link href="/login" className="btn">
@@ -26,6 +26,9 @@ export default function Home() {
               Register
             </Link>
           </div>
+          <p className="copyright">
+            Developed by CodeRunner2049 Studios, all Rights Reserved
+          </p>
         </div>
       </main>
     </>
