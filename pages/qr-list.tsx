@@ -14,43 +14,105 @@ interface QREvent {
 
 export default function QrList() {
   const [user, setUser] = useState({
+    id: '',
     name: 'Admin User',
     email: 'admin@admin.com'
   })
-
-  // QR events data - loads from localStorage
   const [qrEvents, setQrEvents] = useState<QREvent[]>([])
+  const [loading, setLoading] = useState(true)
 
-  // Load events from localStorage on component mount
+  // Load user and events from API on component mount
   useEffect(() => {
-    const savedEvents = localStorage.getItem('qrEvents')
-    if (savedEvents) {
-      setQrEvents(JSON.parse(savedEvents))
+    const loadUserAndEvents = async () => {
+      try {
+        // Get current user
+        const userResponse = await fetch('/api/auth/me')
+        if (userResponse.ok) {
+          const userResult = await userResponse.json()
+          setUser(userResult.user)
+          
+          // Fetch user's events
+          const eventsResponse = await fetch('/api/events')
+          if (eventsResponse.ok) {
+            const eventsResult = await eventsResponse.json()
+            setQrEvents(eventsResult.events || [])
+          }
+        } else {
+          // Redirect to login if not authenticated
+          window.location.href = '/login'
+        }
+      } catch (error) {
+        console.error('Error loading user and events:', error)
+        window.location.href = '/login'
+      } finally {
+        setLoading(false)
+      }
     }
+
+    loadUserAndEvents()
   }, [])
 
-  const handleLogout = () => {
-    window.location.href = '/'
-  }
-
-  const handleDeleteEvent = (eventId: string) => {
-    if (confirm('Are you sure you want to delete this event? This action cannot be undone.')) {
-      const updatedEvents = qrEvents.filter(event => event.id !== eventId)
-      setQrEvents(updatedEvents)
-      localStorage.setItem('qrEvents', JSON.stringify(updatedEvents))
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+      })
+      window.location.href = '/'
+    } catch (error) {
+      console.error('Logout error:', error)
+      window.location.href = '/'
     }
   }
 
-  const handleToggleStatus = (eventId: string) => {
-    const updatedEvents = qrEvents.map(event => {
-      if (event.id === eventId) {
-        const newStatus = event.status === 'active' ? 'inactive' : 'active'
-        return { ...event, status: newStatus as 'active' | 'inactive' | 'completed' }
+  const handleDeleteEvent = async (eventId: string) => {
+    if (confirm('Are you sure you want to delete this event? This action cannot be undone.')) {
+      try {
+        const response = await fetch(`/api/events/${eventId}`, {
+          method: 'DELETE',
+        })
+        
+        if (response.ok) {
+          // Remove from local state
+          setQrEvents(prevEvents => prevEvents.filter(event => event.id !== eventId))
+        } else {
+          alert('Failed to delete event. Please try again.')
+        }
+      } catch (error) {
+        console.error('Error deleting event:', error)
+        alert('Failed to delete event. Please try again.')
       }
-      return event
-    })
-    setQrEvents(updatedEvents)
-    localStorage.setItem('qrEvents', JSON.stringify(updatedEvents))
+    }
+  }
+
+  const handleToggleStatus = async (eventId: string) => {
+    try {
+      const event = qrEvents.find(e => e.id === eventId)
+      if (!event) return
+
+      const newStatus = event.status === 'active' ? 'inactive' : 'active'
+      
+      const response = await fetch(`/api/events/${eventId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: newStatus }),
+      })
+      
+      if (response.ok) {
+        // Update local state
+        setQrEvents(prevEvents => 
+          prevEvents.map(e => 
+            e.id === eventId ? { ...e, status: newStatus as 'active' | 'inactive' | 'completed' } : e
+          )
+        )
+      } else {
+        alert('Failed to update event status. Please try again.')
+      }
+    } catch (error) {
+      console.error('Error updating event status:', error)
+      alert('Failed to update event status. Please try again.')
+    }
   }
 
   const getStatusColor = (status: string) => {
@@ -108,7 +170,11 @@ export default function QrList() {
             </Link>
           </div>
 
-          {qrEvents.length === 0 ? (
+          {loading ? (
+            <div style={{ textAlign: 'center', marginTop: '2rem' }}>
+              <p style={{ color: '#cccccc' }}>Loading your events...</p>
+            </div>
+          ) : qrEvents.length === 0 ? (
             <div className="qr-list-empty">
               <h3>No QR Events Yet</h3>
               <p>Create your first QR event to start collecting photos from your guests.</p>
@@ -162,9 +228,9 @@ export default function QrList() {
                     </button>
                     <button 
                       className="qr-action-btn qr-action-secondary"
-                      onClick={() => window.open(`/uploads/${event.id}`, '_blank')}
+                      onClick={() => window.open(`/upload/${event.id}`, '_blank')}
                     >
-                      View Uploads
+                      Upload Photos
                     </button>
                     <button 
                       className="qr-action-btn qr-action-danger"

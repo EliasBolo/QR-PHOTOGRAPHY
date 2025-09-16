@@ -9,10 +9,9 @@ export default function Dashboard() {
     email: 'admin@admin.com',
     googleDriveConnected: false
   })
-  const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(true)
 
-  // Get current user and events on component mount
+  // Get current user on component mount
   useEffect(() => {
     const getCurrentUser = async () => {
       try {
@@ -20,13 +19,6 @@ export default function Dashboard() {
         if (response.ok) {
           const result = await response.json()
           setUser(result.user)
-          
-          // Fetch user's events
-          const eventsResponse = await fetch('/api/events')
-          if (eventsResponse.ok) {
-            const eventsResult = await eventsResponse.json()
-            setEvents(eventsResult.events || [])
-          }
         } else {
           // Redirect to login if not authenticated
           window.location.href = '/login'
@@ -88,65 +80,12 @@ export default function Dashboard() {
               <p style={{ color: '#cccccc' }}>Loading...</p>
             </div>
           ) : (
-            <>
-              {/* User's Events Section */}
-              {events.length > 0 && (
-                <div style={{ marginTop: '2rem' }}>
-                  <h2 style={{ color: '#ffffff', marginBottom: '1rem' }}>Your Events</h2>
-                  <div style={{ 
-                    display: 'grid', 
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
-                    gap: '1rem',
-                    marginBottom: '2rem'
-                  }}>
-                    {events.map((event: any) => (
-                      <div key={event.id} style={{
-                        background: '#111111',
-                        padding: '1.5rem',
-                        borderRadius: '8px',
-                        border: '1px solid #333333'
-                      }}>
-                        <h3 style={{ color: '#ffffff', marginBottom: '0.5rem' }}>
-                          {event.name}
-                        </h3>
-                        <p style={{ color: '#cccccc', marginBottom: '0.5rem' }}>
-                          Date: {new Date(event.date).toLocaleDateString()}
-                        </p>
-                        <p style={{ color: '#cccccc', marginBottom: '1rem' }}>
-                          Status: <span style={{ 
-                            color: event.status === 'active' ? '#66bb6a' : '#ff6b6b' 
-                          }}>
-                            {event.status}
-                          </span>
-                        </p>
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                          <Link 
-                            href={`/qr-view/${event.id}`} 
-                            className="btn btn-small"
-                            style={{ fontSize: '0.8rem', padding: '0.5rem 1rem' }}
-                          >
-                            View QR
-                          </Link>
-                          <Link 
-                            href={`/upload/${event.id}`} 
-                            className="btn btn-small"
-                            style={{ fontSize: '0.8rem', padding: '0.5rem 1rem' }}
-                          >
-                            Upload Photos
-                          </Link>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
-                gap: '2rem',
-                marginTop: '2rem'
-              }}>
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
+              gap: '2rem',
+              marginTop: '2rem'
+            }}>
             <div style={{
               background: '#111111',
               padding: '2rem',
@@ -218,8 +157,7 @@ export default function Dashboard() {
                 Settings
               </Link>
             </div>
-              </div>
-            </>
+            </div>
           )}
         </div>
       </div>
