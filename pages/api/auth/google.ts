@@ -3,7 +3,6 @@ import { google } from 'googleapis'
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET
-const REDIRECT_URI = process.env.NEXTAUTH_URL + '/api/auth/google/callback'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
@@ -11,10 +10,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
+    // Get the origin from the request headers
+    const origin = req.headers.origin || req.headers.host
+    const protocol = req.headers['x-forwarded-proto'] || (origin?.includes('localhost') ? 'http' : 'https')
+    const host = origin?.includes('localhost') ? origin : req.headers.host
+    
+    const baseUrl = `${protocol}://${host}`
+    const redirectUri = `${baseUrl}/api/auth/google/callback`
+    
+    console.log('OAuth redirect URI:', redirectUri)
+
     const oauth2Client = new google.auth.OAuth2(
       GOOGLE_CLIENT_ID,
       GOOGLE_CLIENT_SECRET,
-      REDIRECT_URI
+      redirectUri
     )
 
     const scopes = [
