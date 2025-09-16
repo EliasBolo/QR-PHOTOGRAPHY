@@ -12,6 +12,7 @@ export default function MobileUpload() {
   const [totalSize, setTotalSize] = useState(0)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [privacyAccepted, setPrivacyAccepted] = useState(false)
 
   const MAX_SIZE_MB = 200
   const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024
@@ -48,6 +49,11 @@ export default function MobileUpload() {
   const handleUpload = async () => {
     if (uploadedFiles.length === 0) {
       setError('Please select files to upload')
+      return
+    }
+    
+    if (!privacyAccepted) {
+      setError('Please accept the privacy policy to continue')
       return
     }
 
@@ -262,6 +268,52 @@ export default function MobileUpload() {
               '📤 Upload Files'
             )}
           </button>
+
+          {/* Privacy Policy Checkbox */}
+          <div style={{
+            marginTop: '1.5rem',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '0.75rem',
+            textAlign: 'left'
+          }}>
+            <input
+              type="checkbox"
+              id="privacy-checkbox"
+              checked={privacyAccepted}
+              onChange={(e) => setPrivacyAccepted(e.target.checked)}
+              style={{
+                marginTop: '0.2rem',
+                transform: 'scale(1.2)',
+                accentColor: '#007bff'
+              }}
+            />
+            <label 
+              htmlFor="privacy-checkbox"
+              style={{
+                color: '#cccccc',
+                fontSize: '0.9rem',
+                lineHeight: '1.4',
+                cursor: 'pointer',
+                flex: 1
+              }}
+            >
+              I have read and accept the{' '}
+              <a 
+                href="/privacy-policy" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                style={{
+                  color: '#007bff',
+                  textDecoration: 'underline',
+                  fontWeight: '500'
+                }}
+              >
+                privacy policy
+              </a>
+              {' '}about uploading my files
+            </label>
+          </div>
 
           {/* Progress Bar */}
           {uploading && (
