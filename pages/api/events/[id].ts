@@ -45,13 +45,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     if (req.method === 'PUT') {
-      const { name, date, description, status } = req.body
+      const { name, date, description, status, googleDriveFolderId } = req.body
       
       const updatedEvent = userDatabase.updateEvent(id, {
         name,
         date,
         description,
-        status
+        status,
+        googleDriveFolderId
       })
 
       if (!updatedEvent) {

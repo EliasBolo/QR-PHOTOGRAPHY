@@ -26,6 +26,7 @@ export interface QREvent {
   createdAt: string
   qrCodeUrl?: string
   description?: string
+  googleDriveFolderId?: string // Google Drive folder ID for this event
 }
 
 // In-memory storage (works on both localhost and Vercel)

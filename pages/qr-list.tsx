@@ -45,14 +45,24 @@ export default function QrList() {
             const serverEvents = eventsResult.events || []
             const mergedEvents = [...userEvents]
             
-            // Add server events that aren't already in localStorage
+            // Add server events that aren't already in localStorage, or update existing ones
             serverEvents.forEach((serverEvent: any) => {
-              if (!userEvents.find((localEvent: any) => localEvent.id === serverEvent.id)) {
+              const existingEventIndex = userEvents.findIndex((localEvent: any) => localEvent.id === serverEvent.id)
+              if (existingEventIndex === -1) {
+                // New event - add it
                 mergedEvents.push({
                   ...serverEvent,
                   userEmail: userResult.user.email,
                   qrCodeUrl: `/upload-mobile/${serverEvent.id}`
                 })
+              } else {
+                // Existing event - update it with server data (including googleDriveFolderId)
+                mergedEvents[existingEventIndex] = {
+                  ...mergedEvents[existingEventIndex],
+                  ...serverEvent,
+                  userEmail: userResult.user.email,
+                  qrCodeUrl: `/upload-mobile/${serverEvent.id}`
+                }
               }
             })
             
@@ -182,9 +192,43 @@ export default function QrList() {
       })
 
       if (response.ok) {
-        alert(`Event "${eventName}" has been re-activated! Google Drive folder created successfully.`)
-        // Refresh the events list
-        loadUserAndEvents()
+        const result = await response.json()
+        const eventFolderId = result.eventFolderId
+        
+        // Update the event with the Google Drive folder ID
+        const updateResponse = await fetch(`/api/events/${eventId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ 
+            googleDriveFolderId: eventFolderId,
+            status: 'active' // Also reactivate the event
+          }),
+        })
+        
+        if (updateResponse.ok) {
+          alert(`Event "${eventName}" has been re-activated! Google Drive folder created successfully.`)
+          
+          // Update localStorage immediately with the new folder ID
+          const savedEvents = JSON.parse(localStorage.getItem('qrEvents') || '[]')
+          const updatedEvents = savedEvents.map((event: any) => {
+            if (event.id === eventId) {
+              return {
+                ...event,
+                googleDriveFolderId: eventFolderId,
+                status: 'active'
+              }
+            }
+            return event
+          })
+          localStorage.setItem('qrEvents', JSON.stringify(updatedEvents))
+          
+          // Refresh the events list
+          loadUserAndEvents()
+        } else {
+          alert(`Google Drive folder created but failed to update event. Please try again.`)
+        }
       } else {
         const result = await response.json()
         alert(`Failed to re-activate event: ${result.error || 'Unknown error'}`)
