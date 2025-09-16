@@ -61,9 +61,13 @@ export default function Settings() {
   useEffect(() => {
     const getCurrentUser = async () => {
       try {
+        console.log('Fetching current user...')
         const response = await fetch('/api/auth/me')
+        console.log('User API response status:', response.status)
+        
         if (response.ok) {
           const result = await response.json()
+          console.log('User API result:', result)
           setUser(result.user)
           
           // Check if we just connected Google Drive
@@ -77,6 +81,8 @@ export default function Settings() {
           }
         } else {
           console.error('Failed to get current user:', response.status)
+          const errorText = await response.text()
+          console.error('Error response:', errorText)
           // Redirect to login if not authenticated
           window.location.href = '/login'
         }
@@ -100,36 +106,75 @@ export default function Settings() {
 
   // Fetch storage quota information
   const fetchStorageQuota = useCallback(async () => {
-    if (!user.googleDriveConnected) return
+    if (!user.googleDriveConnected) {
+      console.log('User Google Drive not connected, skipping storage fetch')
+      return
+    }
     
+    console.log('Fetching storage quota for user:', user.email)
     setStorageLoading(true)
     try {
       const response = await fetch('/api/google-drive/user-storage')
+      console.log('Storage API response status:', response.status)
+      
       if (response.ok) {
         const result = await response.json()
+        console.log('Storage API result:', result)
+        
         if (result.success && result.storage) {
           setDriveStorage(result.storage)
+          console.log('Storage quota updated:', result.storage)
         } else {
           console.error('Invalid storage response:', result)
+          // Set default values to prevent errors
+          setDriveStorage({
+            used: '0 GB',
+            total: '0 GB',
+            percentage: 0,
+            usageInDrive: '0 GB',
+            usageInDriveTrash: '0 GB'
+          })
         }
       } else {
         console.error('Failed to fetch storage quota:', response.status)
+        const errorText = await response.text()
+        console.error('Error response:', errorText)
+        // Set default values to prevent errors
+        setDriveStorage({
+          used: '0 GB',
+          total: '0 GB',
+          percentage: 0,
+          usageInDrive: '0 GB',
+          usageInDriveTrash: '0 GB'
+        })
       }
     } catch (error) {
       console.error('Error fetching storage quota:', error)
+      // Set default values to prevent errors
+      setDriveStorage({
+        used: '0 GB',
+        total: '0 GB',
+        percentage: 0,
+        usageInDrive: '0 GB',
+        usageInDriveTrash: '0 GB'
+      })
     } finally {
       setStorageLoading(false)
     }
-  }, [user.googleDriveConnected])
+  }, [user.googleDriveConnected, user.email])
 
   // Check Google Drive connection status when user changes
   useEffect(() => {
     try {
+      console.log('Checking Google Drive connection for user:', user.email, 'Connected:', user.googleDriveConnected)
+      
       if (user.googleDriveConnected) {
         setGoogleDriveConnected(true)
+        console.log('Google Drive is connected, fetching storage quota')
         // Fetch storage quota after successful connection
         fetchStorageQuota()
       } else {
+        console.log('Google Drive is not connected')
         setGoogleDriveConnected(false)
         setDriveFolderId('')
       }
@@ -138,7 +183,7 @@ export default function Settings() {
       setGoogleDriveConnected(false)
       setDriveFolderId('')
     }
-  }, [user.googleDriveConnected, fetchStorageQuota])
+  }, [user.googleDriveConnected, fetchStorageQuota, user.email])
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
