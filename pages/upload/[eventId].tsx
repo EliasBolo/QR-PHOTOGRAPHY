@@ -25,18 +25,20 @@ export default function UploadPage() {
 
   useEffect(() => {
     if (eventId) {
-      // Load event from API
+      // Load event from public API (no authentication required)
       const loadEvent = async () => {
         try {
-          const response = await fetch(`/api/events/${eventId}`)
+          const response = await fetch(`/api/events/public/${eventId}`)
           if (response.ok) {
             const result = await response.json()
             setEvent(result.event)
           } else {
             console.error('Event not found')
+            alert('Event not found. Please check the QR code.')
           }
         } catch (error) {
           console.error('Error loading event:', error)
+          alert('Error loading event. Please try again.')
         } finally {
           setLoading(false)
         }
@@ -63,15 +65,15 @@ export default function UploadPage() {
     try {
       // Create FormData for file upload
       const formData = new FormData()
-      formData.append('eventName', event?.name || 'Unknown Event')
+      formData.append('eventId', eventId as string)
       
       // Add files to FormData
       uploadedFiles.forEach((file) => {
         formData.append('files', file)
       })
 
-      // Upload to user's Google Drive via API
-      const response = await fetch('/api/google-drive/user-upload', {
+      // Upload to event owner's Google Drive via public API
+      const response = await fetch('/api/upload/public', {
         method: 'POST',
         body: formData,
       })

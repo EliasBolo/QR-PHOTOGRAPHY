@@ -152,7 +152,7 @@ export default function QrCreate() {
       if (response.ok) {
         const newEvent = {
           ...result.event,
-          qrCodeUrl: `/qr-view/${result.event.id}`
+          qrCodeUrl: `/upload/${result.event.id}`
         }
         
         setCreatedEvent(newEvent)
