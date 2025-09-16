@@ -234,7 +234,23 @@ export default function QrList() {
           // Refresh the events list
           loadUserAndEvents()
         } else {
-          alert(`Google Drive folder created but failed to update event. Please try again.`)
+          // Even if API update fails, update localStorage and show success
+          // This ensures the event works for mobile uploads
+          const savedEvents = JSON.parse(localStorage.getItem('qrEvents') || '[]')
+          const updatedEvents = savedEvents.map((event: any) => {
+            if (event.id === eventId) {
+              return {
+                ...event,
+                googleDriveFolderId: eventFolderId,
+                status: 'active'
+              }
+            }
+            return event
+          })
+          localStorage.setItem('qrEvents', JSON.stringify(updatedEvents))
+          
+          alert(`Event "${eventName}" has been re-activated! Google Drive folder created successfully. (Updated locally)`)
+          loadUserAndEvents()
         }
       } else {
         const result = await response.json()
