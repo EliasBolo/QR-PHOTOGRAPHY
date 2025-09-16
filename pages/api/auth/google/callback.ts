@@ -13,11 +13,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const { code } = req.query
+    const { code, state } = req.query
 
     if (!code) {
       return res.status(400).json({ error: 'Authorization code is required' })
     }
+
+    console.log('OAuth callback received state:', state)
 
     // Get the origin from the request headers (same logic as in google.ts)
     const origin = req.headers.origin || req.headers.host
@@ -47,22 +49,36 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'Could not get user email from Google' })
     }
 
-    // Get the current user from the existing session
-    const existingToken = req.cookies['auth-token']
+    // Get the current user - first try state parameter, then cookies
     let user = null
     
-    if (existingToken) {
-      try {
-        const decoded = jwt.verify(existingToken, JWT_SECRET) as any
-        user = userDatabase.getUserById(decoded.userId)
-      } catch (error) {
-        console.log('Invalid existing token:', error)
+    // Try to get user from state parameter first
+    if (state && typeof state === 'string') {
+      user = userDatabase.getUserById(state)
+      console.log('Found user from state parameter:', user?.email)
+    }
+    
+    // If not found from state, try cookies
+    if (!user) {
+      const existingToken = req.cookies['auth-token']
+      console.log('Existing token found:', !!existingToken)
+      
+      if (existingToken) {
+        try {
+          const decoded = jwt.verify(existingToken, JWT_SECRET) as any
+          console.log('Decoded token:', decoded)
+          user = userDatabase.getUserById(decoded.userId)
+          console.log('Found user by ID from token:', user?.email)
+        } catch (error) {
+          console.log('Invalid existing token:', error)
+        }
       }
     }
     
+    // If still not found, check if user exists by Google email
     if (!user) {
-      // If no valid session, check if user exists by Google email
       user = userDatabase.getUserByEmail(userInfo.email)
+      console.log('Found user by Google email:', user?.email)
       
       if (!user) {
         console.log('User not found in database:', userInfo.email)
@@ -78,21 +94,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       expiresAt: tokens.expiry_date || (Date.now() + 3600000)
     })
 
-    // Only create new JWT token if we don't have a valid existing session
-    if (!existingToken) {
-      const token = jwt.sign(
-        { 
-          userId: user.id, 
-          email: user.email,
-          name: user.name 
-        },
-        JWT_SECRET,
-        { expiresIn: '7d' }
-      )
+    // Always create/refresh JWT token to ensure session is maintained
+    console.log('Creating/refreshing JWT token for user:', user.email)
+    const token = jwt.sign(
+      { 
+        userId: user.id, 
+        email: user.email,
+        name: user.name 
+      },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    )
 
-      // Set HTTP-only cookie
-      res.setHeader('Set-Cookie', `auth-token=${token}; HttpOnly; Path=/; Max-Age=${7 * 24 * 60 * 60}; SameSite=Strict`)
-    }
+    // Set HTTP-only cookie
+    res.setHeader('Set-Cookie', `auth-token=${token}; HttpOnly; Path=/; Max-Age=${7 * 24 * 60 * 60}; SameSite=Strict`)
 
     // Redirect to settings page
     res.redirect('/settings?tab=storage&connected=true')

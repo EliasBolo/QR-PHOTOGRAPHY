@@ -32,10 +32,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       'https://www.googleapis.com/auth/userinfo.profile'
     ]
 
+    // Get current user from session to pass as state
+    const existingToken = req.cookies['auth-token']
+    let state = ''
+    
+    if (existingToken) {
+      try {
+        const jwt = require('jsonwebtoken')
+        const decoded = jwt.verify(existingToken, process.env.JWT_SECRET || 'your-secret-key') as any
+        state = decoded.userId // Pass user ID as state
+        console.log('OAuth state set to user ID:', decoded.userId)
+      } catch (error) {
+        console.log('Could not decode existing token for state:', error)
+      }
+    }
+
     const authUrl = oauth2Client.generateAuthUrl({
       access_type: 'offline',
       scope: scopes,
-      prompt: 'consent'
+      prompt: 'consent',
+      state: state // Pass user ID as state parameter
     })
 
     res.redirect(authUrl)
