@@ -89,17 +89,30 @@ export default function Register() {
     setIsLoading(true)
     setAttempts(prev => prev + 1)
     
-    // Simulate registration process
-    setTimeout(() => {
-      console.log('Registration completed!')
+    try {
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      })
+
+      const result = await response.json()
+
+      if (response.ok) {
+        // Registration successful
+        router.push('/dashboard')
+      } else {
+        // Registration failed
+        alert(result.error || 'Registration failed')
+        setIsLoading(false)
+      }
+    } catch (error) {
+      console.error('Registration error:', error)
+      alert('Registration failed. Please try again.')
       setIsLoading(false)
-      // Generate backup codes
-      const codes = Array.from({ length: 10 }, () => 
-        Math.random().toString(36).substring(2, 8).toUpperCase()
-      )
-      setBackupCodes(codes)
-      setShow2FASetup(true)
-    }, 1000)
+    }
   }
 
   const handle2FAVerification = async (e: React.FormEvent) => {

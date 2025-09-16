@@ -36,20 +36,29 @@ export default function Login() {
     setIsLoading(true)
     setAttempts(prev => prev + 1)
     
-    // Check for test user credentials
-    if (email === 'admin@admin.com' && password === 'admin') {
-      setTimeout(() => {
-        setIsLoading(false)
-        // Skip 2FA for test user
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      })
+
+      const result = await response.json()
+
+      if (response.ok) {
+        // Login successful
         router.push('/dashboard')
-      }, 1000)
-    } else {
-      // Simulate login process for other users
-      setTimeout(() => {
+      } else {
+        // Login failed
+        alert(result.error || 'Login failed')
         setIsLoading(false)
-        // Simulate 2FA requirement
-        setShow2FA(true)
-      }, 1000)
+      }
+    } catch (error) {
+      console.error('Login error:', error)
+      alert('Login failed. Please try again.')
+      setIsLoading(false)
     }
   }
 
