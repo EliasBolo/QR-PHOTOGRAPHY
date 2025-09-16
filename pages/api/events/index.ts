@@ -59,7 +59,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       }
 
-      return res.status(201).json({ success: true, event })
+      // Return event with user email for client-side storage
+      return res.status(201).json({ 
+        success: true, 
+        event: {
+          ...event,
+          userEmail: user.email // Include user email for client-side storage
+        }
+      })
     }
 
     return res.status(405).json({ error: 'Method not allowed' })

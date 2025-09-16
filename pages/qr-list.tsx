@@ -21,7 +21,7 @@ export default function QrList() {
   const [qrEvents, setQrEvents] = useState<QREvent[]>([])
   const [loading, setLoading] = useState(true)
 
-  // Load user and events from API
+  // Load user and events from API and localStorage
   const loadUserAndEvents = async () => {
     try {
       // Get current user
@@ -30,11 +30,37 @@ export default function QrList() {
         const userResult = await userResponse.json()
         setUser(userResult.user)
         
-        // Fetch user's events
-        const eventsResponse = await fetch('/api/events')
-        if (eventsResponse.ok) {
-          const eventsResult = await eventsResponse.json()
-          setQrEvents(eventsResult.events || [])
+        // Load events from localStorage first (for persistence)
+        const savedEvents = JSON.parse(localStorage.getItem('qrEvents') || '[]')
+        const userEvents = savedEvents.filter((event: any) => event.userEmail === userResult.user.email)
+        setQrEvents(userEvents)
+        
+        // Also try to fetch from server (in case there are newer events)
+        try {
+          const eventsResponse = await fetch('/api/events')
+          if (eventsResponse.ok) {
+            const eventsResult = await eventsResponse.json()
+            // Merge server events with localStorage events
+            const serverEvents = eventsResult.events || []
+            const mergedEvents = [...userEvents]
+            
+            // Add server events that aren't already in localStorage
+            serverEvents.forEach((serverEvent: any) => {
+              if (!userEvents.find((localEvent: any) => localEvent.id === serverEvent.id)) {
+                mergedEvents.push({
+                  ...serverEvent,
+                  userEmail: userResult.user.email,
+                  qrCodeUrl: `/upload-mobile/${serverEvent.id}`
+                })
+              }
+            })
+            
+            setQrEvents(mergedEvents)
+            // Update localStorage with merged events
+            localStorage.setItem('qrEvents', JSON.stringify(mergedEvents))
+          }
+        } catch (serverError) {
+          console.log('Server events not available, using localStorage only')
         }
       } else {
         // Redirect to login if not authenticated
@@ -90,6 +116,11 @@ export default function QrList() {
         if (response.ok) {
           // Remove from local state
           setQrEvents(prevEvents => prevEvents.filter(event => event.id !== eventId))
+          
+          // Remove from localStorage
+          const savedEvents = JSON.parse(localStorage.getItem('qrEvents') || '[]')
+          const updatedEvents = savedEvents.filter((event: any) => event.id !== eventId)
+          localStorage.setItem('qrEvents', JSON.stringify(updatedEvents))
         } else {
           alert('Failed to delete event. Please try again.')
         }
@@ -122,6 +153,13 @@ export default function QrList() {
             e.id === eventId ? { ...e, status: newStatus as 'active' | 'inactive' | 'completed' } : e
           )
         )
+        
+        // Update localStorage
+        const savedEvents = JSON.parse(localStorage.getItem('qrEvents') || '[]')
+        const updatedEvents = savedEvents.map((event: any) => 
+          event.id === eventId ? { ...event, status: newStatus } : event
+        )
+        localStorage.setItem('qrEvents', JSON.stringify(updatedEvents))
       } else {
         alert('Failed to update event status. Please try again.')
       }

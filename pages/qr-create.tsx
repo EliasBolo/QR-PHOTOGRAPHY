@@ -155,6 +155,11 @@ export default function QrCreate() {
           qrCodeUrl: `/upload-mobile/${result.event.id}`
         }
         
+        // Save event to localStorage for persistence
+        const savedEvents = JSON.parse(localStorage.getItem('qrEvents') || '[]')
+        savedEvents.push(newEvent)
+        localStorage.setItem('qrEvents', JSON.stringify(savedEvents))
+        
         setCreatedEvent(newEvent)
         setIsCreating(false)
         setShowCreateForm(false)
