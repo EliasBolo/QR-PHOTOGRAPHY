@@ -180,10 +180,13 @@ export default function QrCreate() {
         
         setCreatedEvent(newEvent)
         setIsCreating(false)
-        setShowCreateForm(false)
-        setShowQRCode(true)
         
-        alert('Event created successfully! QR code is now ready.')
+        alert('Event created successfully! Redirecting to your events list...')
+        
+        // Redirect to qr-list page after a short delay
+        setTimeout(() => {
+          window.location.href = '/qr-list'
+        }, 1500)
       } else {
         alert(result.error || 'Failed to create event')
         setIsCreating(false)
