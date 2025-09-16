@@ -10,8 +10,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const session = await getServerSession(req, res, authOptions)
     
+    console.log('Session check:', {
+      hasSession: !!session,
+      hasAccessToken: !!(session?.accessToken),
+      userEmail: session?.user?.email
+    })
+    
     if (!session || !session.accessToken) {
-      return res.status(401).json({ error: 'Not authenticated' })
+      return res.status(401).json({ 
+        error: 'Not authenticated',
+        hasSession: !!session,
+        hasAccessToken: !!(session?.accessToken)
+      })
     }
 
     // Test the connection by creating a test folder
@@ -20,6 +30,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     
     // Try to get or create the main folder to test connection
     const mainFolderId = await driveService.getOrCreateMainFolder()
+    
+    console.log('Google Drive connection successful:', { mainFolderId })
     
     // Store the connection status in the user's session or database
     // For now, we'll just return success

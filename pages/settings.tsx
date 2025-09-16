@@ -63,6 +63,32 @@ export default function Settings() {
     }
   }, [])
 
+  // Check Google Drive connection status when session changes
+  useEffect(() => {
+    const checkGoogleDriveConnection = async () => {
+      if (session?.accessToken) {
+        try {
+          const response = await fetch('/api/google-drive/connect', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          })
+          
+          if (response.ok) {
+            const result = await response.json()
+            setGoogleDriveConnected(true)
+            setDriveFolderId(result.mainFolderId)
+          }
+        } catch (error) {
+          console.error('Error checking Google Drive connection:', error)
+        }
+      }
+    }
+
+    checkGoogleDriveConnection()
+  }, [session])
+
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
@@ -228,30 +254,33 @@ export default function Settings() {
     setIsLoading(true)
     
     try {
-      // Sign in with Google to get access token
-      await signIn('google', { 
-        callbackUrl: '/settings?tab=storage',
-        redirect: false 
-      })
-      
-      // Test the connection
-      const response = await fetch('/api/google-drive/connect', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      })
-      
-      const result = await response.json()
-      
-      if (response.ok) {
-        setGoogleDriveConnected(true)
-        setDriveFolderId(result.mainFolderId)
-        setMessage('Google Drive connected successfully!')
-        setMessageType('success')
+      // Check if user is already signed in
+      if (session?.accessToken) {
+        // User is already authenticated, test the connection
+        const response = await fetch('/api/google-drive/connect', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        })
+        
+        const result = await response.json()
+        
+        if (response.ok) {
+          setGoogleDriveConnected(true)
+          setDriveFolderId(result.mainFolderId)
+          setMessage('Google Drive connected successfully!')
+          setMessageType('success')
+        } else {
+          setMessage(result.error || 'Failed to connect to Google Drive')
+          setMessageType('error')
+        }
       } else {
-        setMessage(result.error || 'Failed to connect to Google Drive')
-        setMessageType('error')
+        // User needs to sign in first
+        await signIn('google', { 
+          callbackUrl: '/settings?tab=storage&connected=true',
+          redirect: true 
+        })
       }
     } catch (error) {
       console.error('Google Drive connection error:', error)
@@ -760,6 +789,14 @@ export default function Settings() {
                 
                 <div className="google-drive-section">
                   <h3>Google Drive Connection</h3>
+                  <div className="connection-status" style={{ marginBottom: '1rem', padding: '0.5rem', backgroundColor: '#111111', borderRadius: '4px' }}>
+                    <strong>Status:</strong> 
+                    {session?.accessToken ? (
+                      <span style={{ color: '#66bb6a', marginLeft: '0.5rem' }}>✅ Authenticated with Google</span>
+                    ) : (
+                      <span style={{ color: '#ff6b6b', marginLeft: '0.5rem' }}>❌ Not authenticated</span>
+                    )}
+                  </div>
                   <div className="drive-status">
                     {googleDriveConnected ? (
                       <div className="drive-connected">
