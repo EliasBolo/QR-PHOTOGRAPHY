@@ -321,6 +321,15 @@ export default function QrList() {
               >
                 🔍 Debug Drive
               </button>
+              <button 
+                onClick={() => {
+                  window.open('/api/auth/google', '_blank')
+                }}
+                className="btn btn-primary"
+                style={{ padding: '0.75rem 1rem', marginLeft: '0.5rem' }}
+              >
+                🔗 Connect Drive
+              </button>
             </div>
           </div>
 

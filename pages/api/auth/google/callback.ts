@@ -86,13 +86,43 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return
       }
     }
+    
+    // Final fallback: if still no user found, try to get from current session
+    if (!user) {
+      console.log('No user found, trying to get from current session...')
+      const existingToken = req.cookies['auth-token']
+      if (existingToken) {
+        try {
+          const decoded = jwt.verify(existingToken, JWT_SECRET) as any
+          user = userDatabase.getUserById(decoded.userId)
+          console.log('Found user from existing session:', user?.email)
+        } catch (error) {
+          console.log('Invalid existing token:', error)
+        }
+      }
+    }
+    
+    if (!user) {
+      console.log('No user found after all attempts')
+      res.redirect('/login?error=user_not_found')
+      return
+    }
 
     // Update user's Google Drive tokens
-    userDatabase.updateGoogleDriveTokens(user.id, {
+    console.log('Updating Google Drive tokens for user:', user.email, 'ID:', user.id)
+    const updatedUser = userDatabase.updateGoogleDriveTokens(user.id, {
       accessToken: tokens.access_token!,
       refreshToken: tokens.refresh_token || undefined,
       expiresAt: tokens.expiry_date || (Date.now() + 3600000)
     })
+    
+    if (updatedUser) {
+      console.log('Successfully updated Google Drive tokens for user:', updatedUser.email)
+      console.log('User Google Drive connected:', updatedUser.googleDriveConnected)
+      console.log('User has tokens:', !!updatedUser.googleDriveTokens)
+    } else {
+      console.error('Failed to update Google Drive tokens for user:', user.email)
+    }
 
     // Always create/refresh JWT token to ensure session is maintained
     console.log('Creating/refreshing JWT token for user:', user.email)
