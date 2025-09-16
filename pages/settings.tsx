@@ -874,9 +874,9 @@ export default function Settings() {
                   </div>
                   <div className="storage-details">
                     <div className="storage-usage">
-                      <span>Used: {driveStorage.used}</span>
-                      <span>Total: {driveStorage.total}</span>
-                      <span>Available: {driveStorage.total !== '0 GB' ? 
+                      <span>Used: {driveStorage.used || '0 GB'}</span>
+                      <span>Total: {driveStorage.total || '0 GB'}</span>
+                      <span>Available: {driveStorage.total && driveStorage.total !== '0 GB' && driveStorage.used ? 
                         `${(parseFloat(driveStorage.total.replace(/[^\d.]/g, '')) - parseFloat(driveStorage.used.replace(/[^\d.]/g, ''))).toFixed(2)} GB` : 
                         '0 GB'
                       }</span>
@@ -885,18 +885,18 @@ export default function Settings() {
                       <div 
                         className="storage-bar-fill" 
                         style={{ 
-                          width: `${driveStorage.percentage}%`,
-                          backgroundColor: driveStorage.percentage > 80 ? '#ff6b6b' : driveStorage.percentage > 60 ? '#ffa726' : '#66bb6a'
+                          width: `${driveStorage.percentage || 0}%`,
+                          backgroundColor: (driveStorage.percentage || 0) > 80 ? '#ff6b6b' : (driveStorage.percentage || 0) > 60 ? '#ffa726' : '#66bb6a'
                         }}
                       ></div>
                     </div>
                     <div className="storage-percentage">
-                      {driveStorage.percentage}% used
+                      {driveStorage.percentage || 0}% used
                     </div>
-                    {driveStorage.usageInDrive !== '0 GB' && (
+                    {driveStorage.usageInDrive && driveStorage.usageInDrive !== '0 GB' && (
                       <div style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: '#aaaaaa' }}>
-                        <div>Drive files: {driveStorage.usageInDrive}</div>
-                        <div>Trash: {driveStorage.usageInDriveTrash}</div>
+                        <div>Drive files: {driveStorage.usageInDrive || '0 GB'}</div>
+                        <div>Trash: {driveStorage.usageInDriveTrash || '0 GB'}</div>
                       </div>
                     )}
                   </div>
