@@ -51,12 +51,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     let user = userDatabase.getUserByEmail(userInfo.email)
     
     if (!user) {
-      // Create new user if they don't exist
-      user = userDatabase.createUser({
-        email: userInfo.email,
-        name: userInfo.name || userInfo.email,
-        password: 'google-oauth-user' // Placeholder password
-      })
+      // For now, redirect to login page if user doesn't exist
+      // In a real app, you might want to create the user or link to existing account
+      console.log('User not found in database:', userInfo.email)
+      res.redirect('/login?error=user_not_found&email=' + encodeURIComponent(userInfo.email))
+      return
     }
 
     // Update user's Google Drive tokens

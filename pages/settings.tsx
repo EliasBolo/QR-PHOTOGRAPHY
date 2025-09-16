@@ -65,6 +65,20 @@ export default function Settings() {
         if (response.ok) {
           const result = await response.json()
           setUser(result.user)
+          
+          // Check if we just connected Google Drive
+          const urlParams = new URLSearchParams(window.location.search)
+          if (urlParams.get('connected') === 'true') {
+            setMessage('Google Drive connected successfully!')
+            setMessageType('success')
+            setTimeout(() => setMessage(''), 5000)
+            // Clean up URL
+            window.history.replaceState({}, document.title, window.location.pathname)
+          }
+        } else {
+          console.error('Failed to get current user:', response.status)
+          // Redirect to login if not authenticated
+          window.location.href = '/login'
         }
       } catch (error) {
         console.error('Error getting current user:', error)
@@ -93,7 +107,13 @@ export default function Settings() {
       const response = await fetch('/api/google-drive/user-storage')
       if (response.ok) {
         const result = await response.json()
-        setDriveStorage(result.storage)
+        if (result.success && result.storage) {
+          setDriveStorage(result.storage)
+        } else {
+          console.error('Invalid storage response:', result)
+        }
+      } else {
+        console.error('Failed to fetch storage quota:', response.status)
       }
     } catch (error) {
       console.error('Error fetching storage quota:', error)
@@ -104,11 +124,17 @@ export default function Settings() {
 
   // Check Google Drive connection status when user changes
   useEffect(() => {
-    if (user.googleDriveConnected) {
-      setGoogleDriveConnected(true)
-      // Fetch storage quota after successful connection
-      fetchStorageQuota()
-    } else {
+    try {
+      if (user.googleDriveConnected) {
+        setGoogleDriveConnected(true)
+        // Fetch storage quota after successful connection
+        fetchStorageQuota()
+      } else {
+        setGoogleDriveConnected(false)
+        setDriveFolderId('')
+      }
+    } catch (error) {
+      console.error('Error checking Google Drive connection:', error)
       setGoogleDriveConnected(false)
       setDriveFolderId('')
     }
