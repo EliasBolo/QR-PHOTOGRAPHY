@@ -10,6 +10,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
+    // Ensure test users exist (important for Vercel serverless functions)
+    userDatabase.ensureTestUsers()
+
     // Get token from cookie
     const token = req.cookies['auth-token']
 

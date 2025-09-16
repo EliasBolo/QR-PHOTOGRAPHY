@@ -19,6 +19,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as any
+    
+    // Ensure test users exist (important for Vercel serverless functions)
+    userDatabase.ensureTestUsers()
+    
     const user = userDatabase.getUserById(decoded.userId)
     
     if (!user) {
