@@ -249,6 +249,26 @@ export default function QrList() {
           })
           localStorage.setItem('qrEvents', JSON.stringify(updatedEvents))
           
+          // Also try to create the event in the database for mobile access
+          try {
+            await fetch('/api/events', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                name: eventName,
+                date: new Date().toISOString().split('T')[0],
+                description: 'Re-activated event',
+                status: 'active',
+                googleDriveFolderId: eventFolderId
+              }),
+            })
+            console.log('Event created in database for mobile access')
+          } catch (error) {
+            console.log('Failed to create event in database:', error)
+          }
+          
           alert(`Event "${eventName}" has been re-activated! Google Drive folder created successfully. (Updated locally)`)
           loadUserAndEvents()
         }
