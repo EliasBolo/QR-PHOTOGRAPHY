@@ -47,15 +47,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'Could not get user email from Google' })
     }
 
-    // Check if user exists in our database
-    let user = userDatabase.getUserByEmail(userInfo.email)
+    // Get the current user from the existing session
+    const existingToken = req.cookies['auth-token']
+    let user = null
+    
+    if (existingToken) {
+      try {
+        const decoded = jwt.verify(existingToken, JWT_SECRET) as any
+        user = userDatabase.getUserById(decoded.userId)
+      } catch (error) {
+        console.log('Invalid existing token:', error)
+      }
+    }
     
     if (!user) {
-      // For now, redirect to login page if user doesn't exist
-      // In a real app, you might want to create the user or link to existing account
-      console.log('User not found in database:', userInfo.email)
-      res.redirect('/login?error=user_not_found&email=' + encodeURIComponent(userInfo.email))
-      return
+      // If no valid session, check if user exists by Google email
+      user = userDatabase.getUserByEmail(userInfo.email)
+      
+      if (!user) {
+        console.log('User not found in database:', userInfo.email)
+        res.redirect('/login?error=user_not_found&email=' + encodeURIComponent(userInfo.email))
+        return
+      }
     }
 
     // Update user's Google Drive tokens
@@ -65,19 +78,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       expiresAt: tokens.expiry_date || (Date.now() + 3600000)
     })
 
-    // Create JWT token for our app
-    const token = jwt.sign(
-      { 
-        userId: user.id, 
-        email: user.email,
-        name: user.name 
-      },
-      JWT_SECRET,
-      { expiresIn: '7d' }
-    )
+    // Only create new JWT token if we don't have a valid existing session
+    if (!existingToken) {
+      const token = jwt.sign(
+        { 
+          userId: user.id, 
+          email: user.email,
+          name: user.name 
+        },
+        JWT_SECRET,
+        { expiresIn: '7d' }
+      )
 
-    // Set HTTP-only cookie
-    res.setHeader('Set-Cookie', `auth-token=${token}; HttpOnly; Path=/; Max-Age=${7 * 24 * 60 * 60}; SameSite=Strict`)
+      // Set HTTP-only cookie
+      res.setHeader('Set-Cookie', `auth-token=${token}; HttpOnly; Path=/; Max-Age=${7 * 24 * 60 * 60}; SameSite=Strict`)
+    }
 
     // Redirect to settings page
     res.redirect('/settings?tab=storage&connected=true')
