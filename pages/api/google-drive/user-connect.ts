@@ -22,13 +22,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!user) {
       return res.status(401).json({ error: 'User not found' })
     }
+    
+    console.log('User found:', user.email)
+    console.log('User Google Drive tokens:', user.googleDriveTokens)
+    console.log('User Google Drive connected:', user.googleDriveConnected)
 
     const { accessToken, refreshToken, expiresAt, eventName } = req.body
 
     // If eventName is provided, create folder for that event
     if (eventName) {
+      console.log('Re-activate event request for:', eventName)
+      console.log('User Google Drive tokens:', user.googleDriveTokens ? 'EXISTS' : 'MISSING')
+      console.log('User Google Drive connected flag:', user.googleDriveConnected)
+      
       // Check if user has Google Drive tokens (be more lenient)
       if (!user.googleDriveTokens || !user.googleDriveTokens.accessToken) {
+        console.log('No Google Drive tokens found for user')
         return res.status(400).json({ error: 'Google Drive not connected. Please connect Google Drive first.' })
       }
 
