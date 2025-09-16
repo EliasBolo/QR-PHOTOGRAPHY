@@ -21,35 +21,51 @@ export default function QrList() {
   const [qrEvents, setQrEvents] = useState<QREvent[]>([])
   const [loading, setLoading] = useState(true)
 
-  // Load user and events from API on component mount
-  useEffect(() => {
-    const loadUserAndEvents = async () => {
-      try {
-        // Get current user
-        const userResponse = await fetch('/api/auth/me')
-        if (userResponse.ok) {
-          const userResult = await userResponse.json()
-          setUser(userResult.user)
-          
-          // Fetch user's events
-          const eventsResponse = await fetch('/api/events')
-          if (eventsResponse.ok) {
-            const eventsResult = await eventsResponse.json()
-            setQrEvents(eventsResult.events || [])
-          }
-        } else {
-          // Redirect to login if not authenticated
-          window.location.href = '/login'
+  // Load user and events from API
+  const loadUserAndEvents = async () => {
+    try {
+      // Get current user
+      const userResponse = await fetch('/api/auth/me')
+      if (userResponse.ok) {
+        const userResult = await userResponse.json()
+        setUser(userResult.user)
+        
+        // Fetch user's events
+        const eventsResponse = await fetch('/api/events')
+        if (eventsResponse.ok) {
+          const eventsResult = await eventsResponse.json()
+          setQrEvents(eventsResult.events || [])
         }
-      } catch (error) {
-        console.error('Error loading user and events:', error)
+      } else {
+        // Redirect to login if not authenticated
         window.location.href = '/login'
-      } finally {
-        setLoading(false)
+      }
+    } catch (error) {
+      console.error('Error loading user and events:', error)
+      window.location.href = '/login'
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Load user and events on component mount
+  useEffect(() => {
+    loadUserAndEvents()
+  }, [])
+
+  // Reload events when page becomes visible (e.g., returning from qr-create)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        loadUserAndEvents()
       }
     }
 
-    loadUserAndEvents()
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
   }, [])
 
   const handleLogout = async () => {
@@ -165,9 +181,21 @@ export default function QrList() {
             <p className="qr-list-subtitle">
               Manage and view all your QR code events
             </p>
-            <Link href="/qr-create" className="btn btn-primary">
-              Create New Event
-            </Link>
+            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+              <Link href="/qr-create" className="btn btn-primary">
+                Create New Event
+              </Link>
+              <button 
+                onClick={() => {
+                  setLoading(true)
+                  loadUserAndEvents()
+                }}
+                className="btn btn-secondary"
+                style={{ padding: '0.75rem 1rem' }}
+              >
+                🔄 Refresh
+              </button>
+            </div>
           </div>
 
           {loading ? (

@@ -1,5 +1,8 @@
-// Simple in-memory database for demo purposes
+// Simple file-based database for demo purposes
 // In production, you'd use a real database like PostgreSQL, MongoDB, etc.
+
+import fs from 'fs'
+import path from 'path'
 
 export interface User {
   id: string
@@ -28,9 +31,49 @@ export interface QREvent {
   description?: string
 }
 
-// In-memory storage (replace with real database in production)
+// File-based storage for persistence
+const DATA_DIR = path.join(process.cwd(), 'data')
+const USERS_FILE = path.join(DATA_DIR, 'users.json')
+const EVENTS_FILE = path.join(DATA_DIR, 'events.json')
+
+// Ensure data directory exists
+if (!fs.existsSync(DATA_DIR)) {
+  fs.mkdirSync(DATA_DIR, { recursive: true })
+}
+
+// Load data from files
 let users: User[] = []
 let events: QREvent[] = []
+
+try {
+  if (fs.existsSync(USERS_FILE)) {
+    users = JSON.parse(fs.readFileSync(USERS_FILE, 'utf8'))
+  }
+  if (fs.existsSync(EVENTS_FILE)) {
+    events = JSON.parse(fs.readFileSync(EVENTS_FILE, 'utf8'))
+  }
+} catch (error) {
+  console.error('Error loading database files:', error)
+  users = []
+  events = []
+}
+
+// Save data to files
+const saveUsers = () => {
+  try {
+    fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2))
+  } catch (error) {
+    console.error('Error saving users:', error)
+  }
+}
+
+const saveEvents = () => {
+  try {
+    fs.writeFileSync(EVENTS_FILE, JSON.stringify(events, null, 2))
+  } catch (error) {
+    console.error('Error saving events:', error)
+  }
+}
 
 export const userDatabase = {
   // User management
@@ -42,6 +85,7 @@ export const userDatabase = {
       googleDriveConnected: false
     }
     users.push(user)
+    saveUsers()
     return user
   },
 
@@ -57,6 +101,7 @@ export const userDatabase = {
     const userIndex = users.findIndex(user => user.id === id)
     if (userIndex !== -1) {
       users[userIndex] = { ...users[userIndex], ...updates }
+      saveUsers()
       return users[userIndex]
     }
     return undefined
@@ -89,6 +134,7 @@ export const userDatabase = {
       createdAt: new Date().toISOString()
     }
     events.push(event)
+    saveEvents()
     return event
   },
 
@@ -104,6 +150,7 @@ export const userDatabase = {
     const eventIndex = events.findIndex(event => event.id === id)
     if (eventIndex !== -1) {
       events[eventIndex] = { ...events[eventIndex], ...updates }
+      saveEvents()
       return events[eventIndex]
     }
     return undefined
@@ -113,6 +160,7 @@ export const userDatabase = {
     const eventIndex = events.findIndex(event => event.id === id)
     if (eventIndex !== -1) {
       events.splice(eventIndex, 1)
+      saveEvents()
       return true
     }
     return false
@@ -128,17 +176,24 @@ export const userDatabase = {
   }
 }
 
-// Initialize with test users
-if (users.length === 0) {
+// Initialize with test users if they don't exist
+const adminUser = users.find(u => u.email === 'admin@admin.com')
+const dimitrisUser = users.find(u => u.email === 'dimitris@tombros.gr')
+
+if (!adminUser) {
   userDatabase.createUser({
     email: 'admin@admin.com',
     name: 'Admin User',
     password: 'admin' // In production, hash this
   })
-  
+  console.log('Created admin user')
+}
+
+if (!dimitrisUser) {
   userDatabase.createUser({
     email: 'dimitris@tombros.gr',
     name: 'Dimitris Tombros',
     password: '6944442333' // In production, hash this
   })
+  console.log('Created dimitris user')
 }

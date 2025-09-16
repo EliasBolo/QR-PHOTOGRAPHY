@@ -9,6 +9,9 @@ export const config = {
   },
 }
 
+const MAX_SIZE_MB = 200
+const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
@@ -17,7 +20,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     // Parse the form data
     const form = formidable({
-      maxFileSize: 50 * 1024 * 1024, // 50MB max file size
+      maxFileSize: MAX_SIZE_BYTES, // 200MB max total size
     })
 
     const [fields, files] = await form.parse(req)
@@ -46,6 +49,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const eventFolderId = await driveService.getOrCreateEventFolder(event.name)
 
     const uploadedFiles = []
+    let totalSize = 0
+
+    // Check total file size first
+    for (const [key, fileArray] of Object.entries(files)) {
+      const file = Array.isArray(fileArray) ? fileArray[0] : fileArray
+      if (file && file.size) {
+        totalSize += file.size
+      }
+    }
+
+    if (totalSize > MAX_SIZE_BYTES) {
+      return res.status(400).json({ 
+        error: `Total file size (${(totalSize / 1024 / 1024).toFixed(1)}MB) exceeds the ${MAX_SIZE_MB}MB limit` 
+      })
+    }
 
     // Process each uploaded file
     for (const [key, fileArray] of Object.entries(files)) {

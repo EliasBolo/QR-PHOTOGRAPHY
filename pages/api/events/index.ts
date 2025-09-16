@@ -42,6 +42,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         uploads: 0
       })
 
+      // Auto-create Google Drive folder if user has Google Drive connected
+      if (user.googleDriveConnected && user.googleDriveTokens) {
+        try {
+          const { GoogleDriveService } = await import('../../../lib/google-drive')
+          const driveService = new GoogleDriveService(user.googleDriveTokens.accessToken)
+          await driveService.getOrCreateEventFolder(name)
+          console.log(`Created Google Drive folder for event: ${name}`)
+        } catch (error) {
+          console.error('Error creating Google Drive folder:', error)
+          // Don't fail the event creation if folder creation fails
+        }
+      }
+
       return res.status(201).json({ success: true, event })
     }
 

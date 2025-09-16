@@ -152,7 +152,7 @@ export default function QrCreate() {
       if (response.ok) {
         const newEvent = {
           ...result.event,
-          qrCodeUrl: `/upload/${result.event.id}`
+          qrCodeUrl: `/upload-mobile/${result.event.id}`
         }
         
         setCreatedEvent(newEvent)
@@ -175,8 +175,8 @@ export default function QrCreate() {
   const handleCreateQR = async () => {
     if (createdEvent) {
       try {
-        // Generate QR code that links to upload page
-        const uploadUrl = `${window.location.origin}/upload/${createdEvent.id}`
+        // Generate QR code that links to mobile upload page
+        const uploadUrl = `${window.location.origin}/upload-mobile/${createdEvent.id}`
         const qrDataURL = await QRCode.toDataURL(uploadUrl, {
           width: 280,
           margin: 2,

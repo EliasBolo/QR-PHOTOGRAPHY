@@ -22,47 +22,63 @@ export default function QrView() {
   const { id } = router.query
   
   const [user, setUser] = useState({
+    id: '',
     name: 'Admin User',
     email: 'admin@admin.com'
   })
-
   const [userLogo, setUserLogo] = useState<string | null>(null)
   const [event, setEvent] = useState<QREvent | null>(null)
   const [loading, setLoading] = useState(true)
   const [qrCodeDataURL, setQrCodeDataURL] = useState<string>('')
 
   useEffect(() => {
-    if (id) {
-      // Load user logo from localStorage
-      const savedLogo = localStorage.getItem('userLogo')
-      if (savedLogo) {
-        setUserLogo(savedLogo)
-      }
-      
-      // Load events from localStorage
-      const savedEvents = localStorage.getItem('qrEvents')
-      if (savedEvents) {
-        const events = JSON.parse(savedEvents)
-        const foundEvent = events.find((e: QREvent) => e.id === id)
-        if (foundEvent) {
-          setEvent(foundEvent)
-          // Generate QR code for this event
-          generateQRCode(foundEvent)
+    const loadUserAndEvent = async () => {
+      try {
+        // Get current user
+        const userResponse = await fetch('/api/auth/me')
+        if (userResponse.ok) {
+          const userResult = await userResponse.json()
+          setUser(userResult.user)
+          
+          // Load user logo from localStorage
+          const savedLogo = localStorage.getItem('userLogo')
+          if (savedLogo) {
+            setUserLogo(savedLogo)
+          }
+          
+          // Load event from API
+          if (id) {
+            const eventResponse = await fetch(`/api/events/${id}`)
+            if (eventResponse.ok) {
+              const eventResult = await eventResponse.json()
+              setEvent(eventResult.event)
+              // Generate QR code for this event
+              generateQRCode(eventResult.event)
+            } else {
+              console.error('Event not found')
+              router.push('/qr-list')
+            }
+          }
         } else {
-          // Event not found, redirect to QR list
-          router.push('/qr-list')
+          // Redirect to login if not authenticated
+          window.location.href = '/login'
         }
-      } else {
-        // No events found, redirect to QR list
-        router.push('/qr-list')
+      } catch (error) {
+        console.error('Error loading user and event:', error)
+        window.location.href = '/login'
+      } finally {
+        setLoading(false)
       }
-      setLoading(false)
+    }
+
+    if (id) {
+      loadUserAndEvent()
     }
   }, [id, router])
 
   const generateQRCode = async (event: QREvent) => {
     try {
-      const uploadUrl = `${window.location.origin}/upload/${event.id}`
+      const uploadUrl = `${window.location.origin}/upload-mobile/${event.id}`
       const qrDataURL = await QRCode.toDataURL(uploadUrl, {
         width: 280,
         margin: 2,
@@ -77,8 +93,16 @@ export default function QrView() {
     }
   }
 
-  const handleLogout = () => {
-    window.location.href = '/'
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+      })
+      window.location.href = '/'
+    } catch (error) {
+      console.error('Logout error:', error)
+      window.location.href = '/'
+    }
   }
 
   const handlePrintA5 = () => {
