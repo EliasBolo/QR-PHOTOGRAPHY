@@ -25,16 +25,24 @@ export default function UploadPage() {
 
   useEffect(() => {
     if (eventId) {
-      // Load event from localStorage
-      const savedEvents = localStorage.getItem('qrEvents')
-      if (savedEvents) {
-        const events = JSON.parse(savedEvents)
-        const foundEvent = events.find((e: QREvent) => e.id === eventId)
-        if (foundEvent) {
-          setEvent(foundEvent)
+      // Load event from API
+      const loadEvent = async () => {
+        try {
+          const response = await fetch(`/api/events/${eventId}`)
+          if (response.ok) {
+            const result = await response.json()
+            setEvent(result.event)
+          } else {
+            console.error('Event not found')
+          }
+        } catch (error) {
+          console.error('Error loading event:', error)
+        } finally {
+          setLoading(false)
         }
       }
-      setLoading(false)
+      
+      loadEvent()
     }
   }, [eventId])
 
@@ -62,8 +70,8 @@ export default function UploadPage() {
         formData.append('files', file)
       })
 
-      // Upload to Google Drive via API
-      const response = await fetch('/api/google-drive/upload', {
+      // Upload to user's Google Drive via API
+      const response = await fetch('/api/google-drive/user-upload', {
         method: 'POST',
         body: formData,
       })

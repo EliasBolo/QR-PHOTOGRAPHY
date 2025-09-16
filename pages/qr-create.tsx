@@ -7,8 +7,10 @@ import html2canvas from 'html2canvas'
 
 export default function QrCreate() {
   const [user, setUser] = useState({
+    id: '',
     name: 'Admin User',
-    email: 'admin@admin.com'
+    email: 'admin@admin.com',
+    googleDriveConnected: false
   })
 
   const [userLogo, setUserLogo] = useState<string | null>(null)
@@ -24,6 +26,27 @@ export default function QrCreate() {
   const [showQRCode, setShowQRCode] = useState(false)
   const [qrCodeDataURL, setQrCodeDataURL] = useState<string>('')
 
+  // Get current user on component mount
+  useEffect(() => {
+    const getCurrentUser = async () => {
+      try {
+        const response = await fetch('/api/auth/me')
+        if (response.ok) {
+          const result = await response.json()
+          setUser(result.user)
+        } else {
+          // Redirect to login if not authenticated
+          window.location.href = '/login'
+        }
+      } catch (error) {
+        console.error('Error getting current user:', error)
+        window.location.href = '/login'
+      }
+    }
+
+    getCurrentUser()
+  }, [])
+
   // Load user logo from localStorage on component mount
   useEffect(() => {
     const savedLogo = localStorage.getItem('userLogo')
@@ -32,9 +55,16 @@ export default function QrCreate() {
     }
   }, [])
 
-  const handleLogout = () => {
-    // Simulate logout
-    window.location.href = '/'
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+      })
+      window.location.href = '/'
+    } catch (error) {
+      console.error('Logout error:', error)
+      window.location.href = '/'
+    }
   }
 
   const handlePrintA5 = () => {
@@ -108,31 +138,38 @@ export default function QrCreate() {
     
     setIsCreating(true)
     
-    // Simulate event creation
-    setTimeout(() => {
-      const newEvent = {
-        id: Date.now().toString(),
-        name: eventData.name,
-        date: eventData.date,
-        description: eventData.description,
-        status: 'active',
-        uploads: 0,
-        createdAt: new Date().toISOString().split('T')[0],
-        qrCodeUrl: `/api/qr/${Date.now()}`
+    try {
+      const response = await fetch('/api/events', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(eventData),
+      })
+
+      const result = await response.json()
+
+      if (response.ok) {
+        const newEvent = {
+          ...result.event,
+          qrCodeUrl: `/qr-view/${result.event.id}`
+        }
+        
+        setCreatedEvent(newEvent)
+        setIsCreating(false)
+        setShowCreateForm(false)
+        setShowQRCode(true)
+        
+        alert('Event created successfully! QR code is now ready.')
+      } else {
+        alert(result.error || 'Failed to create event')
+        setIsCreating(false)
       }
-      
-      setCreatedEvent(newEvent)
+    } catch (error) {
+      console.error('Error creating event:', error)
+      alert('Failed to create event. Please try again.')
       setIsCreating(false)
-      setShowCreateForm(false)
-      setShowQRCode(true)
-      
-      // Store in localStorage for persistence (in real app, this would be API call)
-      const existingEvents = JSON.parse(localStorage.getItem('qrEvents') || '[]')
-      existingEvents.push(newEvent)
-      localStorage.setItem('qrEvents', JSON.stringify(existingEvents))
-      
-      alert('Event created successfully! QR code is now ready.')
-    }, 1500)
+    }
   }
 
   const handleCreateQR = async () => {
