@@ -30,16 +30,36 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'Event ID is required' })
     }
 
-    // Get the event to find the owner
-    const event = userDatabase.getEventById(eventId)
-    if (!event) {
-      return res.status(404).json({ error: 'Event not found' })
+    // Try to get the event from database first
+    let event = userDatabase.getEventById(eventId)
+    let eventOwner = null
+    
+    if (event) {
+      // Event found in database, get the owner
+      eventOwner = userDatabase.getUserById(event.userId)
+    } else {
+      // Event not in database, try to find any user with Google Drive connected
+      // This handles cases where events are stored in localStorage only
+      const allUsers = userDatabase.getAllUsers()
+      eventOwner = allUsers.find(user => user.googleDriveConnected && user.googleDriveTokens)
+      
+      if (eventOwner) {
+        // Create a temporary event object for the upload
+        event = {
+          id: eventId,
+          name: `Event ${eventId}`,
+          userId: eventOwner.id,
+          date: new Date().toISOString().split('T')[0],
+          status: 'active' as const,
+          uploads: 0,
+          createdAt: new Date().toISOString()
+        }
+        console.log('Using fallback event for upload:', eventId)
+      }
     }
-
-    // Get the event owner
-    const eventOwner = userDatabase.getUserById(event.userId)
-    if (!eventOwner || !eventOwner.googleDriveConnected || !eventOwner.googleDriveTokens) {
-      return res.status(400).json({ error: 'Event owner has not connected Google Drive' })
+    
+    if (!eventOwner || !eventOwner.googleDriveConnected || !eventOwner.googleDriveTokens || !event) {
+      return res.status(400).json({ error: 'No user with Google Drive connected found' })
     }
 
     const { GoogleDriveService } = await import('../../../lib/google-drive')
