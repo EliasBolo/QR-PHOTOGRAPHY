@@ -16,7 +16,8 @@ export default function QrList() {
   const [user, setUser] = useState({
     id: '',
     name: 'Admin User',
-    email: 'admin@admin.com'
+    email: 'admin@admin.com',
+    googleDriveConnected: false
   })
   const [qrEvents, setQrEvents] = useState<QREvent[]>([])
   const [loading, setLoading] = useState(true)
@@ -70,7 +71,8 @@ export default function QrList() {
           setUser({
             id: 'local-user',
             name: 'User',
-            email: 'user@example.com'
+            email: 'user@example.com',
+            googleDriveConnected: false
           })
           const savedEvents = JSON.parse(localStorage.getItem('qrEvents') || '[]')
           setQrEvents(savedEvents)
@@ -88,7 +90,8 @@ export default function QrList() {
         setUser({
           id: 'local-user',
           name: 'User',
-          email: 'user@example.com'
+          email: 'user@example.com',
+          googleDriveConnected: false
         })
         const savedEvents = JSON.parse(localStorage.getItem('qrEvents') || '[]')
         setQrEvents(savedEvents)
@@ -155,6 +158,40 @@ export default function QrList() {
         console.error('Error deleting event:', error)
         alert('Failed to delete event. Please try again.')
       }
+    }
+  }
+
+  const handleReActivateEvent = async (eventId: string, eventName: string) => {
+    try {
+      // Check if Google Drive is connected
+      const savedDriveStatus = localStorage.getItem(`googleDriveConnected_${user.email}`)
+      const isDriveConnected = savedDriveStatus === 'true' || user.googleDriveConnected
+      
+      if (!isDriveConnected) {
+        alert('Please connect your Google Drive first in Settings before re-activating events.')
+        return
+      }
+
+      // Create Google Drive folder for this event
+      const response = await fetch('/api/google-drive/user-connect', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ eventName }),
+      })
+
+      if (response.ok) {
+        alert(`Event "${eventName}" has been re-activated! Google Drive folder created successfully.`)
+        // Refresh the events list
+        loadUserAndEvents()
+      } else {
+        const result = await response.json()
+        alert(`Failed to re-activate event: ${result.error || 'Unknown error'}`)
+      }
+    } catch (error) {
+      console.error('Error re-activating event:', error)
+      alert('Failed to re-activate event. Please try again.')
     }
   }
 
@@ -275,6 +312,12 @@ export default function QrList() {
                       onClick={() => window.open(`/qr-view/${event.id}`, '_blank')}
                     >
                       View QR Code
+                    </button>
+                    <button 
+                      className="qr-action-btn qr-action-secondary"
+                      onClick={() => handleReActivateEvent(event.id, event.name)}
+                    >
+                      Re-Activate Event
                     </button>
                     <button 
                       className="qr-action-btn qr-action-danger"

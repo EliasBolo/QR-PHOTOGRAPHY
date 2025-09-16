@@ -23,8 +23,31 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(401).json({ error: 'User not found' })
     }
 
-    const { accessToken, refreshToken, expiresAt } = req.body
+    const { accessToken, refreshToken, expiresAt, eventName } = req.body
 
+    // If eventName is provided, create folder for that event
+    if (eventName) {
+      // Check if user has Google Drive connected
+      if (!user.googleDriveConnected || !user.googleDriveTokens) {
+        return res.status(400).json({ error: 'Google Drive not connected. Please connect Google Drive first.' })
+      }
+
+      const { GoogleDriveService } = await import('../../../lib/google-drive')
+      const driveService = new GoogleDriveService(user.googleDriveTokens.accessToken)
+      
+      // Create folder for the specific event
+      const eventFolderId = await driveService.getOrCreateEventFolder(eventName)
+      
+      console.log(`Created Google Drive folder for event: ${eventName}`)
+      
+      return res.status(200).json({ 
+        success: true, 
+        message: `Google Drive folder created for event: ${eventName}`,
+        eventFolderId 
+      })
+    }
+
+    // Original connection logic for new Google Drive connections
     if (!accessToken) {
       return res.status(400).json({ error: 'Access token is required' })
     }
