@@ -1,6 +1,6 @@
 import Head from 'next/head'
 import Link from 'next/link'
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { signIn, signOut, useSession } from 'next-auth/react'
 
 export default function Settings() {
@@ -37,11 +37,14 @@ export default function Settings() {
   // Google Drive state
   const [googleDriveConnected, setGoogleDriveConnected] = useState(false)
   const [driveStorage, setDriveStorage] = useState({
-    used: '2.3 GB',
-    total: '15 GB',
-    percentage: 15
+    used: '0 GB',
+    total: '0 GB',
+    percentage: 0,
+    usageInDrive: '0 GB',
+    usageInDriveTrash: '0 GB'
   })
   const [driveFolderId, setDriveFolderId] = useState('')
+  const [storageLoading, setStorageLoading] = useState(false)
 
   // Subscription state
   const [subscription, setSubscription] = useState({
@@ -63,6 +66,24 @@ export default function Settings() {
     }
   }, [])
 
+  // Fetch storage quota information
+  const fetchStorageQuota = useCallback(async () => {
+    if (!session?.accessToken) return
+    
+    setStorageLoading(true)
+    try {
+      const response = await fetch('/api/google-drive/storage')
+      if (response.ok) {
+        const result = await response.json()
+        setDriveStorage(result.storage)
+      }
+    } catch (error) {
+      console.error('Error fetching storage quota:', error)
+    } finally {
+      setStorageLoading(false)
+    }
+  }, [session?.accessToken])
+
   // Check Google Drive connection status when session changes
   useEffect(() => {
     const checkGoogleDriveConnection = async () => {
@@ -79,6 +100,8 @@ export default function Settings() {
             const result = await response.json()
             setGoogleDriveConnected(true)
             setDriveFolderId(result.mainFolderId)
+            // Fetch storage quota after successful connection
+            fetchStorageQuota()
           }
         } catch (error) {
           console.error('Error checking Google Drive connection:', error)
@@ -87,7 +110,7 @@ export default function Settings() {
     }
 
     checkGoogleDriveConnection()
-  }, [session])
+  }, [session, fetchStorageQuota])
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -769,21 +792,51 @@ export default function Settings() {
               
               <div className="storage-status">
                 <div className="storage-info">
-                  <h3>Storage Status</h3>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <h3>Storage Status</h3>
+                    <button 
+                      onClick={fetchStorageQuota}
+                      disabled={storageLoading || !googleDriveConnected}
+                      style={{
+                        padding: '0.5rem 1rem',
+                        backgroundColor: '#333333',
+                        color: '#ffffff',
+                        border: '1px solid #555555',
+                        borderRadius: '4px',
+                        cursor: storageLoading || !googleDriveConnected ? 'not-allowed' : 'pointer',
+                        opacity: storageLoading || !googleDriveConnected ? 0.5 : 1
+                      }}
+                    >
+                      {storageLoading ? 'Refreshing...' : 'Refresh'}
+                    </button>
+                  </div>
                   <div className="storage-details">
                     <div className="storage-usage">
                       <span>Used: {driveStorage.used}</span>
                       <span>Total: {driveStorage.total}</span>
+                      <span>Available: {driveStorage.total !== '0 GB' ? 
+                        `${(parseFloat(driveStorage.total.replace(/[^\d.]/g, '')) - parseFloat(driveStorage.used.replace(/[^\d.]/g, ''))).toFixed(2)} GB` : 
+                        '0 GB'
+                      }</span>
                     </div>
                     <div className="storage-bar">
                       <div 
                         className="storage-bar-fill" 
-                        style={{ width: `${driveStorage.percentage}%` }}
+                        style={{ 
+                          width: `${driveStorage.percentage}%`,
+                          backgroundColor: driveStorage.percentage > 80 ? '#ff6b6b' : driveStorage.percentage > 60 ? '#ffa726' : '#66bb6a'
+                        }}
                       ></div>
                     </div>
                     <div className="storage-percentage">
                       {driveStorage.percentage}% used
                     </div>
+                    {driveStorage.usageInDrive !== '0 GB' && (
+                      <div style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: '#aaaaaa' }}>
+                        <div>Drive files: {driveStorage.usageInDrive}</div>
+                        <div>Trash: {driveStorage.usageInDriveTrash}</div>
+                      </div>
+                    )}
                   </div>
                 </div>
                 

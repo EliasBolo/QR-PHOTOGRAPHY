@@ -128,4 +128,49 @@ export class GoogleDriveService {
       throw new Error('Failed to list files')
     }
   }
+
+  // Get storage quota information
+  async getStorageQuota(): Promise<{
+    limit: string
+    usage: string
+    usageInDrive: string
+    usageInDriveTrash: string
+    percentage: number
+  }> {
+    try {
+      const response = await this.drive.about.get({
+        fields: 'storageQuota'
+      })
+
+      const quota = response.data.storageQuota
+      const limit = parseInt(quota.limit || '0')
+      const usage = parseInt(quota.usage || '0')
+      const usageInDrive = parseInt(quota.usageInDrive || '0')
+      const usageInDriveTrash = parseInt(quota.usageInDriveTrash || '0')
+      
+      const percentage = limit > 0 ? Math.round((usage / limit) * 100) : 0
+
+      return {
+        limit: this.formatBytes(limit),
+        usage: this.formatBytes(usage),
+        usageInDrive: this.formatBytes(usageInDrive),
+        usageInDriveTrash: this.formatBytes(usageInDriveTrash),
+        percentage
+      }
+    } catch (error) {
+      console.error('Error getting storage quota:', error)
+      throw new Error('Failed to get storage quota')
+    }
+  }
+
+  // Helper function to format bytes
+  private formatBytes(bytes: number): string {
+    if (bytes === 0) return '0 Bytes'
+    
+    const k = 1024
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+  }
 }
