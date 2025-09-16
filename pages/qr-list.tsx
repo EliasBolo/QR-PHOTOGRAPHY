@@ -163,9 +163,9 @@ export default function QrList() {
 
   const handleReActivateEvent = async (eventId: string, eventName: string) => {
     try {
-      // Check if Google Drive is connected
+      // Check if Google Drive is connected by checking localStorage first
       const savedDriveStatus = localStorage.getItem(`googleDriveConnected_${user.email}`)
-      const isDriveConnected = savedDriveStatus === 'true' || user.googleDriveConnected
+      const isDriveConnected = savedDriveStatus === 'true'
       
       if (!isDriveConnected) {
         alert('Please connect your Google Drive first in Settings before re-activating events.')

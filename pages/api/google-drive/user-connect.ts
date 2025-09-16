@@ -27,24 +27,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // If eventName is provided, create folder for that event
     if (eventName) {
-      // Check if user has Google Drive connected
-      if (!user.googleDriveConnected || !user.googleDriveTokens) {
+      // Check if user has Google Drive tokens (be more lenient)
+      if (!user.googleDriveTokens || !user.googleDriveTokens.accessToken) {
         return res.status(400).json({ error: 'Google Drive not connected. Please connect Google Drive first.' })
       }
 
-      const { GoogleDriveService } = await import('../../../lib/google-drive')
-      const driveService = new GoogleDriveService(user.googleDriveTokens.accessToken)
-      
-      // Create folder for the specific event
-      const eventFolderId = await driveService.getOrCreateEventFolder(eventName)
-      
-      console.log(`Created Google Drive folder for event: ${eventName}`)
-      
-      return res.status(200).json({ 
-        success: true, 
-        message: `Google Drive folder created for event: ${eventName}`,
-        eventFolderId 
-      })
+      try {
+        const { GoogleDriveService } = await import('../../../lib/google-drive')
+        const driveService = new GoogleDriveService(user.googleDriveTokens.accessToken)
+        
+        // Create folder for the specific event
+        const eventFolderId = await driveService.getOrCreateEventFolder(eventName)
+        
+        console.log(`Created Google Drive folder for event: ${eventName}`)
+        
+        return res.status(200).json({ 
+          success: true, 
+          message: `Google Drive folder created for event: ${eventName}`,
+          eventFolderId 
+        })
+      } catch (error) {
+        console.error('Error creating Google Drive folder:', error)
+        return res.status(500).json({ 
+          error: 'Failed to create Google Drive folder. Please check your Google Drive connection.',
+          details: error instanceof Error ? error.message : 'Unknown error'
+        })
+      }
     }
 
     // Original connection logic for new Google Drive connections
