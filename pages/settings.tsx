@@ -1,16 +1,15 @@
 import Head from 'next/head'
 import Link from 'next/link'
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { signIn, signOut, useSession } from 'next-auth/react'
 
 export default function Settings() {
-  const { data: session, status } = useSession()
-  
   const [user, setUser] = useState({
+    id: '',
     name: 'Admin User',
     email: 'admin@admin.com',
     phone: '+1 (555) 123-4567',
-    company: 'Tombros Photography'
+    company: 'Tombros Photography',
+    googleDriveConnected: false
   })
 
   const [activeTab, setActiveTab] = useState('profile')
@@ -58,6 +57,25 @@ export default function Settings() {
   const honeypotRef = useRef<HTMLInputElement>(null)
   const logoInputRef = useRef<HTMLInputElement>(null)
 
+  // Get current user on component mount
+  useEffect(() => {
+    const getCurrentUser = async () => {
+      try {
+        const response = await fetch('/api/auth/me')
+        if (response.ok) {
+          const result = await response.json()
+          setUser(result.user)
+        }
+      } catch (error) {
+        console.error('Error getting current user:', error)
+        // Redirect to login if not authenticated
+        window.location.href = '/login'
+      }
+    }
+
+    getCurrentUser()
+  }, [])
+
   // Load user logo from localStorage on component mount
   useEffect(() => {
     const savedLogo = localStorage.getItem('userLogo')
@@ -68,11 +86,11 @@ export default function Settings() {
 
   // Fetch storage quota information
   const fetchStorageQuota = useCallback(async () => {
-    if (!session?.accessToken) return
+    if (!user.googleDriveConnected) return
     
     setStorageLoading(true)
     try {
-      const response = await fetch('/api/google-drive/storage')
+      const response = await fetch('/api/google-drive/user-storage')
       if (response.ok) {
         const result = await response.json()
         setDriveStorage(result.storage)
@@ -82,35 +100,19 @@ export default function Settings() {
     } finally {
       setStorageLoading(false)
     }
-  }, [session?.accessToken])
+  }, [user.googleDriveConnected])
 
-  // Check Google Drive connection status when session changes
+  // Check Google Drive connection status when user changes
   useEffect(() => {
-    const checkGoogleDriveConnection = async () => {
-      if (session?.accessToken) {
-        try {
-          const response = await fetch('/api/google-drive/connect', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          })
-          
-          if (response.ok) {
-            const result = await response.json()
-            setGoogleDriveConnected(true)
-            setDriveFolderId(result.mainFolderId)
-            // Fetch storage quota after successful connection
-            fetchStorageQuota()
-          }
-        } catch (error) {
-          console.error('Error checking Google Drive connection:', error)
-        }
-      }
+    if (user.googleDriveConnected) {
+      setGoogleDriveConnected(true)
+      // Fetch storage quota after successful connection
+      fetchStorageQuota()
+    } else {
+      setGoogleDriveConnected(false)
+      setDriveFolderId('')
     }
-
-    checkGoogleDriveConnection()
-  }, [session, fetchStorageQuota])
+  }, [user.googleDriveConnected, fetchStorageQuota])
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -277,34 +279,8 @@ export default function Settings() {
     setIsLoading(true)
     
     try {
-      // Check if user is already signed in
-      if (session?.accessToken) {
-        // User is already authenticated, test the connection
-        const response = await fetch('/api/google-drive/connect', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        })
-        
-        const result = await response.json()
-        
-        if (response.ok) {
-          setGoogleDriveConnected(true)
-          setDriveFolderId(result.mainFolderId)
-          setMessage('Google Drive connected successfully!')
-          setMessageType('success')
-        } else {
-          setMessage(result.error || 'Failed to connect to Google Drive')
-          setMessageType('error')
-        }
-      } else {
-        // User needs to sign in first
-        await signIn('google', { 
-          callbackUrl: '/settings?tab=storage&connected=true',
-          redirect: true 
-        })
-      }
+      // Redirect to Google OAuth
+      window.location.href = '/api/auth/google'
     } catch (error) {
       console.error('Google Drive connection error:', error)
       setMessage('Failed to connect to Google Drive')
@@ -319,13 +295,20 @@ export default function Settings() {
     setIsLoading(true)
     
     try {
-      // Sign out from Google
-      await signOut({ redirect: false })
+      const response = await fetch('/api/auth/logout', {
+        method: 'POST',
+      })
       
-      setGoogleDriveConnected(false)
-      setDriveFolderId('')
-      setMessage('Google Drive disconnected successfully!')
-      setMessageType('success')
+      if (response.ok) {
+        setGoogleDriveConnected(false)
+        setDriveFolderId('')
+        setUser(prev => ({ ...prev, googleDriveConnected: false }))
+        setMessage('Google Drive disconnected successfully!')
+        setMessageType('success')
+      } else {
+        setMessage('Failed to disconnect from Google Drive')
+        setMessageType('error')
+      }
     } catch (error) {
       console.error('Google Drive disconnection error:', error)
       setMessage('Failed to disconnect from Google Drive')
@@ -353,8 +336,16 @@ export default function Settings() {
     }, 1000)
   }
 
-  const handleLogout = () => {
-    window.location.href = '/'
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+      })
+      window.location.href = '/'
+    } catch (error) {
+      console.error('Logout error:', error)
+      window.location.href = '/'
+    }
   }
 
   return (
@@ -844,10 +835,10 @@ export default function Settings() {
                   <h3>Google Drive Connection</h3>
                   <div className="connection-status" style={{ marginBottom: '1rem', padding: '0.5rem', backgroundColor: '#111111', borderRadius: '4px' }}>
                     <strong>Status:</strong> 
-                    {session?.accessToken ? (
-                      <span style={{ color: '#66bb6a', marginLeft: '0.5rem' }}>✅ Authenticated with Google</span>
+                    {user.googleDriveConnected ? (
+                      <span style={{ color: '#66bb6a', marginLeft: '0.5rem' }}>✅ Google Drive Connected</span>
                     ) : (
-                      <span style={{ color: '#ff6b6b', marginLeft: '0.5rem' }}>❌ Not authenticated</span>
+                      <span style={{ color: '#ff6b6b', marginLeft: '0.5rem' }}>❌ Google Drive Not Connected</span>
                     )}
                   </div>
                   <div className="drive-status">
