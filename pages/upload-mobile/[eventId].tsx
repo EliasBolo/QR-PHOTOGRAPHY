@@ -19,26 +19,38 @@ export default function MobileUpload() {
 
   useEffect(() => {
     if (eventId) {
+      console.log('Looking for event ID:', eventId)
+      
       // First check localStorage for event
       const savedEvents = JSON.parse(localStorage.getItem('qrEvents') || '[]')
+      console.log('All saved events:', savedEvents)
+      
       const localEvent = savedEvents.find((event: any) => event.id === eventId)
+      console.log('Found local event:', localEvent)
       
       if (localEvent) {
         // Event found in localStorage, no need to check API
+        console.log('Event found in localStorage, clearing error')
         setError('')
         return
       }
       
+      console.log('Event not found in localStorage, checking API...')
+      
       // If not in localStorage, verify event exists via API
       fetch(`/api/events/public/${eventId}`)
         .then(response => {
+          console.log('API response status:', response.status)
           if (!response.ok) {
+            console.log('API returned error, setting error message')
             setError('Event not found. Please check the QR code.')
           } else {
+            console.log('API found event, clearing error')
             setError('')
           }
         })
-        .catch(() => {
+        .catch((error) => {
+          console.log('API request failed:', error)
           setError('Error loading event. Please try again.')
         })
     }
