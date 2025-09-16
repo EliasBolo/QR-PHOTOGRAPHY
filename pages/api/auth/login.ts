@@ -16,6 +16,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'Email and password are required' })
     }
 
+    // Ensure test users exist (important for Vercel serverless functions)
+    userDatabase.ensureTestUsers()
+
     // Find user by email
     const user = userDatabase.getUserByEmail(email)
     

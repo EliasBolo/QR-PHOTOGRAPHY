@@ -173,27 +173,32 @@ export const userDatabase = {
 
   getAllEvents: (): QREvent[] => {
     return [...events]
+  },
+
+  // Ensure test users exist (for Vercel serverless functions)
+  ensureTestUsers: () => {
+    const adminUser = users.find(u => u.email === 'admin@admin.com')
+    const dimitrisUser = users.find(u => u.email === 'dimitris@tombros.gr')
+
+    if (!adminUser) {
+      userDatabase.createUser({
+        email: 'admin@admin.com',
+        name: 'Admin User',
+        password: 'admin' // In production, hash this
+      })
+      console.log('Created admin user')
+    }
+
+    if (!dimitrisUser) {
+      userDatabase.createUser({
+        email: 'dimitris@tombros.gr',
+        name: 'Dimitris Tombros',
+        password: '6944442333' // In production, hash this
+      })
+      console.log('Created dimitris user')
+    }
   }
 }
 
-// Initialize with test users if they don't exist
-const adminUser = users.find(u => u.email === 'admin@admin.com')
-const dimitrisUser = users.find(u => u.email === 'dimitris@tombros.gr')
-
-if (!adminUser) {
-  userDatabase.createUser({
-    email: 'admin@admin.com',
-    name: 'Admin User',
-    password: 'admin' // In production, hash this
-  })
-  console.log('Created admin user')
-}
-
-if (!dimitrisUser) {
-  userDatabase.createUser({
-    email: 'dimitris@tombros.gr',
-    name: 'Dimitris Tombros',
-    password: '6944442333' // In production, hash this
-  })
-  console.log('Created dimitris user')
-}
+// Initialize test users on startup
+userDatabase.ensureTestUsers()
