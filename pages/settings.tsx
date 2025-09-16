@@ -68,7 +68,18 @@ export default function Settings() {
         if (response.ok) {
           const result = await response.json()
           console.log('User API result:', result)
-          setUser(result.user)
+          
+          // Load Google Drive connection status from localStorage
+          const savedDriveStatus = localStorage.getItem(`googleDriveConnected_${result.user.email}`)
+          const isDriveConnected = savedDriveStatus === 'true'
+          
+          // Update user with localStorage Google Drive status if available
+          const userWithDriveStatus = {
+            ...result.user,
+            googleDriveConnected: isDriveConnected || result.user.googleDriveConnected
+          }
+          
+          setUser(userWithDriveStatus)
           
           // Check if we just connected Google Drive
           const urlParams = new URLSearchParams(window.location.search)
@@ -76,6 +87,10 @@ export default function Settings() {
             setMessage('Google Drive connected successfully!')
             setMessageType('success')
             setTimeout(() => setMessage(''), 5000)
+            
+            // Save Google Drive connection status to localStorage
+            localStorage.setItem(`googleDriveConnected_${result.user.email}`, 'true')
+            
             // Clean up URL
             window.history.replaceState({}, document.title, window.location.pathname)
           }
@@ -374,6 +389,10 @@ export default function Settings() {
         setGoogleDriveConnected(false)
         setDriveFolderId('')
         setUser(prev => ({ ...prev, googleDriveConnected: false }))
+        
+        // Remove Google Drive connection status from localStorage
+        localStorage.removeItem(`googleDriveConnected_${user.email}`)
+        
         setMessage('Google Drive disconnected successfully!')
         setMessageType('success')
       } else {

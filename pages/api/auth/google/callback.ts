@@ -109,8 +109,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Set HTTP-only cookie
     res.setHeader('Set-Cookie', `auth-token=${token}; HttpOnly; Path=/; Max-Age=${7 * 24 * 60 * 60}; SameSite=Strict`)
 
-    // Redirect to settings page
-    res.redirect('/settings?tab=storage&connected=true')
+    // Redirect to settings page with user email for localStorage
+    res.redirect(`/settings?tab=storage&connected=true&userEmail=${encodeURIComponent(user.email)}`)
 
   } catch (error) {
     console.error('Google OAuth callback error:', error)
