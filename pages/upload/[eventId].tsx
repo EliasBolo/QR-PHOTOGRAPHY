@@ -53,30 +53,36 @@ export default function UploadPage() {
     setUploadProgress(0)
 
     try {
-      // TODO: Implement Google Drive upload
-      // This will be replaced with actual Google Drive API calls
+      // Create FormData for file upload
+      const formData = new FormData()
+      formData.append('eventName', event?.name || 'Unknown Event')
       
-      // Simulate upload progress for now
-      for (let i = 0; i <= 100; i += 10) {
-        setUploadProgress(i)
-        await new Promise(resolve => setTimeout(resolve, 200))
-      }
+      // Add files to FormData
+      uploadedFiles.forEach((file) => {
+        formData.append('files', file)
+      })
 
-      // TODO: Replace with actual Google Drive upload
-      // await uploadToGoogleDrive(uploadedFiles, event.id)
+      // Upload to Google Drive via API
+      const response = await fetch('/api/google-drive/upload', {
+        method: 'POST',
+        body: formData,
+      })
 
-      // Simulate successful upload
-      setTimeout(() => {
-        setUploading(false)
-        setUploadProgress(0)
+      const result = await response.json()
+
+      if (response.ok) {
+        setUploadProgress(100)
+        alert(`Upload completed successfully! ${result.files.length} files uploaded to Google Drive.`)
         setUploadedFiles([])
-        alert(`Successfully uploaded ${uploadedFiles.length} photos to Google Drive!`)
-      }, 500)
+      } else {
+        throw new Error(result.error || 'Upload failed')
+      }
     } catch (error) {
       console.error('Upload error:', error)
+      alert('Upload failed. Please make sure you are connected to Google Drive.')
+    } finally {
       setUploading(false)
       setUploadProgress(0)
-      alert('Upload failed. Please try again.')
     }
   }
 

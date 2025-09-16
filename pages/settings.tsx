@@ -1,8 +1,11 @@
 import Head from 'next/head'
 import Link from 'next/link'
 import { useState, useRef, useEffect } from 'react'
+import { signIn, signOut, useSession } from 'next-auth/react'
 
 export default function Settings() {
+  const { data: session, status } = useSession()
+  
   const [user, setUser] = useState({
     name: 'Admin User',
     email: 'admin@admin.com',
@@ -221,32 +224,64 @@ export default function Settings() {
     }, 1000)
   }
 
-  const handleGoogleDriveConnect = () => {
+  const handleGoogleDriveConnect = async () => {
     setIsLoading(true)
     
-    // Simulate Google Drive connection
-    setTimeout(() => {
-      setGoogleDriveConnected(true)
-      setDriveFolderId('qr-photography-main-folder')
+    try {
+      // Sign in with Google to get access token
+      await signIn('google', { 
+        callbackUrl: '/settings?tab=storage',
+        redirect: false 
+      })
+      
+      // Test the connection
+      const response = await fetch('/api/google-drive/connect', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+      
+      const result = await response.json()
+      
+      if (response.ok) {
+        setGoogleDriveConnected(true)
+        setDriveFolderId(result.mainFolderId)
+        setMessage('Google Drive connected successfully!')
+        setMessageType('success')
+      } else {
+        setMessage(result.error || 'Failed to connect to Google Drive')
+        setMessageType('error')
+      }
+    } catch (error) {
+      console.error('Google Drive connection error:', error)
+      setMessage('Failed to connect to Google Drive')
+      setMessageType('error')
+    } finally {
       setIsLoading(false)
-      setMessage('Google Drive connected successfully!')
-      setMessageType('success')
       setTimeout(() => setMessage(''), 3000)
-    }, 2000)
+    }
   }
 
-  const handleGoogleDriveDisconnect = () => {
+  const handleGoogleDriveDisconnect = async () => {
     setIsLoading(true)
     
-    // Simulate Google Drive disconnection
-    setTimeout(() => {
+    try {
+      // Sign out from Google
+      await signOut({ redirect: false })
+      
       setGoogleDriveConnected(false)
       setDriveFolderId('')
-      setIsLoading(false)
       setMessage('Google Drive disconnected successfully!')
       setMessageType('success')
+    } catch (error) {
+      console.error('Google Drive disconnection error:', error)
+      setMessage('Failed to disconnect from Google Drive')
+      setMessageType('error')
+    } finally {
+      setIsLoading(false)
       setTimeout(() => setMessage(''), 3000)
-    }, 1000)
+    }
   }
 
   const handleSubscriptionChange = (newPlan: string) => {
