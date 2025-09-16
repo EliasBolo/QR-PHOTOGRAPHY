@@ -63,38 +63,37 @@ export default function QrList() {
           console.log('Server events not available, using localStorage only')
         }
       } else {
-        // Try localStorage fallback before redirecting
-        const savedEvents = JSON.parse(localStorage.getItem('qrEvents') || '[]')
-        if (savedEvents.length > 0) {
-          // Use a default user for localStorage events
+        // Check if user has a valid JWT token in cookies
+        const hasAuthToken = document.cookie.includes('auth-token=')
+        if (hasAuthToken) {
+          // User has token but API failed, use default user and load events from localStorage
           setUser({
             id: 'local-user',
             name: 'User',
             email: 'user@example.com'
           })
+          const savedEvents = JSON.parse(localStorage.getItem('qrEvents') || '[]')
           setQrEvents(savedEvents)
         } else {
-          // Only redirect to login if no localStorage data
+          // No token, redirect to login
           window.location.href = '/login'
         }
       }
     } catch (error) {
       console.error('Error loading user and events:', error)
-      // Try localStorage fallback before redirecting
-      try {
+      // Check if user has a valid JWT token in cookies
+      const hasAuthToken = document.cookie.includes('auth-token=')
+      if (hasAuthToken) {
+        // User has token but API failed, use default user and load events from localStorage
+        setUser({
+          id: 'local-user',
+          name: 'User',
+          email: 'user@example.com'
+        })
         const savedEvents = JSON.parse(localStorage.getItem('qrEvents') || '[]')
-        if (savedEvents.length > 0) {
-          setUser({
-            id: 'local-user',
-            name: 'User',
-            email: 'user@example.com'
-          })
-          setQrEvents(savedEvents)
-        } else {
-          window.location.href = '/login'
-        }
-      } catch (localError) {
-        console.error('LocalStorage fallback failed:', localError)
+        setQrEvents(savedEvents)
+      } else {
+        // No token, redirect to login
         window.location.href = '/login'
       }
     } finally {

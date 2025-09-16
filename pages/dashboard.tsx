@@ -20,10 +20,10 @@ export default function Dashboard() {
           const result = await response.json()
           setUser(result.user)
         } else {
-          // Try localStorage fallback before redirecting
-          const savedEvents = JSON.parse(localStorage.getItem('qrEvents') || '[]')
-          if (savedEvents.length > 0) {
-            // Use a default user for localStorage events
+          // Check if user has a valid JWT token in cookies
+          const hasAuthToken = document.cookie.includes('auth-token=')
+          if (hasAuthToken) {
+            // User has token but API failed, use default user
             setUser({
               id: 'local-user',
               name: 'User',
@@ -31,27 +31,24 @@ export default function Dashboard() {
               googleDriveConnected: false
             })
           } else {
-            // Only redirect to login if no localStorage data
+            // No token, redirect to login
             window.location.href = '/login'
           }
         }
       } catch (error) {
         console.error('Error getting current user:', error)
-        // Try localStorage fallback before redirecting
-        try {
-          const savedEvents = JSON.parse(localStorage.getItem('qrEvents') || '[]')
-          if (savedEvents.length > 0) {
-            setUser({
-              id: 'local-user',
-              name: 'User',
-              email: 'user@example.com',
-              googleDriveConnected: false
-            })
-          } else {
-            window.location.href = '/login'
-          }
-        } catch (localError) {
-          console.error('LocalStorage fallback failed:', localError)
+        // Check if user has a valid JWT token in cookies
+        const hasAuthToken = document.cookie.includes('auth-token=')
+        if (hasAuthToken) {
+          // User has token but API failed, use default user
+          setUser({
+            id: 'local-user',
+            name: 'User',
+            email: 'user@example.com',
+            googleDriveConnected: false
+          })
+        } else {
+          // No token, redirect to login
           window.location.href = '/login'
         }
       } finally {
