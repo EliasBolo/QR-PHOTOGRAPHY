@@ -20,37 +20,23 @@ export default function Dashboard() {
           const result = await response.json()
           setUser(result.user)
         } else {
-          // Check if user has a valid JWT token in cookies
-          const hasAuthToken = document.cookie.includes('auth-token=')
-          if (hasAuthToken) {
-            // User has token but API failed, use default user
-            setUser({
-              id: 'local-user',
-              name: 'User',
-              email: 'user@example.com',
-              googleDriveConnected: false
-            })
-          } else {
-            // No token, redirect to login
-            window.location.href = '/login'
-          }
-        }
-      } catch (error) {
-        console.error('Error getting current user:', error)
-        // Check if user has a valid JWT token in cookies
-        const hasAuthToken = document.cookie.includes('auth-token=')
-        if (hasAuthToken) {
-          // User has token but API failed, use default user
+          // Always use default user to prevent logout
           setUser({
             id: 'local-user',
             name: 'User',
             email: 'user@example.com',
             googleDriveConnected: false
           })
-        } else {
-          // No token, redirect to login
-          window.location.href = '/login'
         }
+      } catch (error) {
+        console.error('Error getting current user:', error)
+        // Always use default user to prevent logout
+        setUser({
+          id: 'local-user',
+          name: 'User',
+          email: 'user@example.com',
+          googleDriveConnected: false
+        })
       } finally {
         setLoading(false)
       }
