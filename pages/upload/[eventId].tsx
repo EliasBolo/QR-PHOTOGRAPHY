@@ -216,7 +216,7 @@ export default function UploadPage() {
                 <li>Select photos and videos from your device</li>
                 <li>Supported formats: JPG, PNG, MP4, MOV</li>
                 <li>Maximum file size: 50MB per file</li>
-                <li>Your photos will be uploaded to the event's Google Drive folder</li>
+                <li>Your photos will be uploaded to the event&apos;s Google Drive folder</li>
                 <li>Files are automatically organized by event</li>
               </ul>
             </div>

@@ -45,7 +45,7 @@ export default function QrList() {
     const updatedEvents = qrEvents.map(event => {
       if (event.id === eventId) {
         const newStatus = event.status === 'active' ? 'inactive' : 'active'
-        return { ...event, status: newStatus }
+        return { ...event, status: newStatus as 'active' | 'inactive' | 'completed' }
       }
       return event
     })

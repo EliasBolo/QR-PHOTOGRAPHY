@@ -787,7 +787,7 @@ export default function Settings() {
                         <div className="step-number">2</div>
                         <div className="step-content">
                           <h4>Guests Upload</h4>
-                          <p>Guests scan the QR code and upload photos directly to the event's folder.</p>
+                          <p>Guests scan the QR code and upload photos directly to the event&apos;s folder.</p>
                         </div>
                       </div>
                       <div className="setup-step">
