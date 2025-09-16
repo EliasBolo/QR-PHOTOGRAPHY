@@ -63,12 +63,40 @@ export default function QrList() {
           console.log('Server events not available, using localStorage only')
         }
       } else {
-        // Redirect to login if not authenticated
-        window.location.href = '/login'
+        // Try localStorage fallback before redirecting
+        const savedEvents = JSON.parse(localStorage.getItem('qrEvents') || '[]')
+        if (savedEvents.length > 0) {
+          // Use a default user for localStorage events
+          setUser({
+            id: 'local-user',
+            name: 'User',
+            email: 'user@example.com'
+          })
+          setQrEvents(savedEvents)
+        } else {
+          // Only redirect to login if no localStorage data
+          window.location.href = '/login'
+        }
       }
     } catch (error) {
       console.error('Error loading user and events:', error)
-      window.location.href = '/login'
+      // Try localStorage fallback before redirecting
+      try {
+        const savedEvents = JSON.parse(localStorage.getItem('qrEvents') || '[]')
+        if (savedEvents.length > 0) {
+          setUser({
+            id: 'local-user',
+            name: 'User',
+            email: 'user@example.com'
+          })
+          setQrEvents(savedEvents)
+        } else {
+          window.location.href = '/login'
+        }
+      } catch (localError) {
+        console.error('LocalStorage fallback failed:', localError)
+        window.location.href = '/login'
+      }
     } finally {
       setLoading(false)
     }

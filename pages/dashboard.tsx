@@ -20,12 +20,40 @@ export default function Dashboard() {
           const result = await response.json()
           setUser(result.user)
         } else {
-          // Redirect to login if not authenticated
-          window.location.href = '/login'
+          // Try localStorage fallback before redirecting
+          const savedEvents = JSON.parse(localStorage.getItem('qrEvents') || '[]')
+          if (savedEvents.length > 0) {
+            // Use a default user for localStorage events
+            setUser({
+              id: 'local-user',
+              name: 'User',
+              email: 'user@example.com',
+              googleDriveConnected: false
+            })
+          } else {
+            // Only redirect to login if no localStorage data
+            window.location.href = '/login'
+          }
         }
       } catch (error) {
         console.error('Error getting current user:', error)
-        window.location.href = '/login'
+        // Try localStorage fallback before redirecting
+        try {
+          const savedEvents = JSON.parse(localStorage.getItem('qrEvents') || '[]')
+          if (savedEvents.length > 0) {
+            setUser({
+              id: 'local-user',
+              name: 'User',
+              email: 'user@example.com',
+              googleDriveConnected: false
+            })
+          } else {
+            window.location.href = '/login'
+          }
+        } catch (localError) {
+          console.error('LocalStorage fallback failed:', localError)
+          window.location.href = '/login'
+        }
       } finally {
         setLoading(false)
       }
