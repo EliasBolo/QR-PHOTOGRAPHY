@@ -46,26 +46,76 @@ export default function QrView() {
             setUserLogo(savedLogo)
           }
           
-          // Load event from API
+          // Load event from API and localStorage
           if (id) {
-            const eventResponse = await fetch(`/api/events/${id}`)
-            if (eventResponse.ok) {
-              const eventResult = await eventResponse.json()
-              setEvent(eventResult.event)
-              // Generate QR code for this event
-              generateQRCode(eventResult.event)
+            // First try to load from localStorage
+            const savedEvents = JSON.parse(localStorage.getItem('qrEvents') || '[]')
+            const localEvent = savedEvents.find((event: any) => event.id === id)
+            
+            if (localEvent) {
+              setEvent(localEvent)
+              generateQRCode(localEvent)
             } else {
-              console.error('Event not found')
-              router.push('/qr-list')
+              // If not in localStorage, try API
+              const eventResponse = await fetch(`/api/events/${id}`)
+              if (eventResponse.ok) {
+                const eventResult = await eventResponse.json()
+                setEvent(eventResult.event)
+                generateQRCode(eventResult.event)
+              } else {
+                console.error('Event not found in localStorage or API')
+                router.push('/qr-list')
+              }
             }
           }
         } else {
-          // Redirect to login if not authenticated
-          window.location.href = '/login'
+          console.error('User authentication failed, trying localStorage fallback')
+          // Try to get user from localStorage as fallback
+          const savedEvents = JSON.parse(localStorage.getItem('qrEvents') || '[]')
+          if (savedEvents.length > 0 && id) {
+            const localEvent = savedEvents.find((event: any) => event.id === id)
+            if (localEvent) {
+              // Use a default user for localStorage events
+              setUser({
+                id: 'local-user',
+                name: 'User',
+                email: 'user@example.com'
+              })
+              setEvent(localEvent)
+              generateQRCode(localEvent)
+            } else {
+              router.push('/qr-list')
+            }
+          } else {
+            // Only redirect to login if no localStorage data
+            window.location.href = '/login'
+          }
         }
       } catch (error) {
         console.error('Error loading user and event:', error)
-        window.location.href = '/login'
+        // Try localStorage fallback before redirecting
+        try {
+          const savedEvents = JSON.parse(localStorage.getItem('qrEvents') || '[]')
+          if (savedEvents.length > 0 && id) {
+            const localEvent = savedEvents.find((event: any) => event.id === id)
+            if (localEvent) {
+              setUser({
+                id: 'local-user',
+                name: 'User',
+                email: 'user@example.com'
+              })
+              setEvent(localEvent)
+              generateQRCode(localEvent)
+            } else {
+              router.push('/qr-list')
+            }
+          } else {
+            window.location.href = '/login'
+          }
+        } catch (localError) {
+          console.error('LocalStorage fallback failed:', localError)
+          window.location.href = '/login'
+        }
       } finally {
         setLoading(false)
       }
