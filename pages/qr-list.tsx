@@ -131,43 +131,6 @@ export default function QrList() {
     }
   }
 
-  const handleToggleStatus = async (eventId: string) => {
-    try {
-      const event = qrEvents.find(e => e.id === eventId)
-      if (!event) return
-
-      const newStatus = event.status === 'active' ? 'inactive' : 'active'
-      
-      const response = await fetch(`/api/events/${eventId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ status: newStatus }),
-      })
-      
-      if (response.ok) {
-        // Update local state
-        setQrEvents(prevEvents => 
-          prevEvents.map(e => 
-            e.id === eventId ? { ...e, status: newStatus as 'active' | 'inactive' | 'completed' } : e
-          )
-        )
-        
-        // Update localStorage
-        const savedEvents = JSON.parse(localStorage.getItem('qrEvents') || '[]')
-        const updatedEvents = savedEvents.map((event: any) => 
-          event.id === eventId ? { ...event, status: newStatus } : event
-        )
-        localStorage.setItem('qrEvents', JSON.stringify(updatedEvents))
-      } else {
-        alert('Failed to update event status. Please try again.')
-      }
-    } catch (error) {
-      console.error('Error updating event status:', error)
-      alert('Failed to update event status. Please try again.')
-    }
-  }
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -285,18 +248,6 @@ export default function QrList() {
                       onClick={() => window.open(`/qr-view/${event.id}`, '_blank')}
                     >
                       View QR Code
-                    </button>
-                    <button 
-                      className="qr-action-btn qr-action-secondary"
-                      onClick={() => handleToggleStatus(event.id)}
-                    >
-                      {event.status === 'active' ? 'Deactivate' : 'Activate'}
-                    </button>
-                    <button 
-                      className="qr-action-btn qr-action-secondary"
-                      onClick={() => window.open(`/upload/${event.id}`, '_blank')}
-                    >
-                      Upload Photos
                     </button>
                     <button 
                       className="qr-action-btn qr-action-danger"
