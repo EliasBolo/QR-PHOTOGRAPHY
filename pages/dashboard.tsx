@@ -14,21 +14,25 @@ export default function Dashboard() {
   // Get current user on component mount
   useEffect(() => {
     const getCurrentUser = async () => {
+      // Always set a default user first to prevent any logout issues
+      setUser({
+        id: 'local-user',
+        name: 'User',
+        email: 'user@example.com',
+        googleDriveConnected: false
+      })
+      setLoading(false)
+      
+      // Try to get real user data in background (non-blocking)
       try {
         const response = await fetch('/api/auth/me')
         const result = await response.json()
-        setUser(result.user)
+        if (result.user && result.user.id !== 'default-user') {
+          setUser(result.user)
+        }
       } catch (error) {
         console.error('Error getting current user:', error)
-        // Always use default user to prevent logout
-        setUser({
-          id: 'local-user',
-          name: 'User',
-          email: 'user@example.com',
-          googleDriveConnected: false
-        })
-      } finally {
-        setLoading(false)
+        // Keep the default user we already set
       }
     }
 

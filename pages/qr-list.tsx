@@ -87,8 +87,15 @@ export default function QrList() {
           const savedEvents = JSON.parse(localStorage.getItem('qrEvents') || '[]')
           setQrEvents(savedEvents)
         } else {
-          // No token, redirect to login
-          window.location.href = '/login'
+          // No token, use default user instead of redirecting
+          setUser({
+            id: 'local-user',
+            name: 'User',
+            email: 'user@example.com',
+            googleDriveConnected: false
+          })
+          const savedEvents = JSON.parse(localStorage.getItem('qrEvents') || '[]')
+          setQrEvents(savedEvents)
         }
       }
     } catch (error) {
@@ -106,8 +113,15 @@ export default function QrList() {
         const savedEvents = JSON.parse(localStorage.getItem('qrEvents') || '[]')
         setQrEvents(savedEvents)
       } else {
-        // No token, redirect to login
-        window.location.href = '/login'
+        // No token, use default user instead of redirecting
+        setUser({
+          id: 'local-user',
+          name: 'User',
+          email: 'user@example.com',
+          googleDriveConnected: false
+        })
+        const savedEvents = JSON.parse(localStorage.getItem('qrEvents') || '[]')
+        setQrEvents(savedEvents)
       }
     } finally {
       setLoading(false)
