@@ -86,8 +86,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const { GoogleDriveService } = await import('../../../lib/google-drive')
     const driveService = new GoogleDriveService(eventOwner.googleDriveTokens.accessToken)
 
+    console.log('Attempting to create Google Drive folder for event:', event.name)
+    
     // Get or create the event folder in the owner's Google Drive
-    const eventFolderId = await driveService.getOrCreateEventFolder(event.name)
+    let eventFolderId
+    try {
+      eventFolderId = await driveService.getOrCreateEventFolder(event.name)
+      console.log('Successfully created/found Google Drive folder:', eventFolderId)
+    } catch (error) {
+      console.error('Error creating Google Drive folder:', error)
+      return res.status(500).json({ error: 'Failed to create Google Drive folder', details: error instanceof Error ? error.message : 'Unknown error' })
+    }
 
     const uploadedFiles = []
     let totalSize = 0
@@ -107,26 +116,34 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Process each uploaded file
-    for (const [key, fileArray] of Object.entries(files)) {
-      const file = Array.isArray(fileArray) ? fileArray[0] : fileArray
-      
-      if (file && file.filepath) {
-        // Read the file
-        const fileBuffer = fs.readFileSync(file.filepath)
+    try {
+      for (const [key, fileArray] of Object.entries(files)) {
+        const file = Array.isArray(fileArray) ? fileArray[0] : fileArray
         
-        // Upload to the event owner's Google Drive
-        const uploadedFile = await driveService.uploadFile(
-          fileBuffer,
-          file.originalFilename || 'unknown',
-          file.mimetype || 'application/octet-stream',
-          eventFolderId
-        )
-        
-        uploadedFiles.push(uploadedFile)
-        
-        // Clean up temporary file
-        fs.unlinkSync(file.filepath)
+        if (file && file.filepath) {
+          console.log('Processing file:', file.originalFilename)
+          
+          // Read the file
+          const fileBuffer = fs.readFileSync(file.filepath)
+          
+          // Upload to the event owner's Google Drive
+          const uploadedFile = await driveService.uploadFile(
+            fileBuffer,
+            file.originalFilename || 'unknown',
+            file.mimetype || 'application/octet-stream',
+            eventFolderId
+          )
+          
+          uploadedFiles.push(uploadedFile)
+          console.log('Successfully uploaded file:', file.originalFilename)
+          
+          // Clean up temporary file
+          fs.unlinkSync(file.filepath)
+        }
       }
+    } catch (error) {
+      console.error('Error uploading files:', error)
+      return res.status(500).json({ error: 'Failed to upload files', details: error instanceof Error ? error.message : 'Unknown error' })
     }
 
     // Update event upload count
