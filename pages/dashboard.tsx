@@ -16,18 +16,8 @@ export default function Dashboard() {
     const getCurrentUser = async () => {
       try {
         const response = await fetch('/api/auth/me')
-        if (response.ok) {
-          const result = await response.json()
-          setUser(result.user)
-        } else {
-          // Always use default user to prevent logout
-          setUser({
-            id: 'local-user',
-            name: 'User',
-            email: 'user@example.com',
-            googleDriveConnected: false
-          })
-        }
+        const result = await response.json()
+        setUser(result.user)
       } catch (error) {
         console.error('Error getting current user:', error)
         // Always use default user to prevent logout

@@ -34,7 +34,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Update last login
     userDatabase.updateUser(user.id, { lastLogin: new Date().toISOString() })
 
-    // Create JWT token
+    // Create JWT token with longer expiration
     const token = jwt.sign(
       { 
         userId: user.id, 
@@ -42,11 +42,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         name: user.name 
       },
       JWT_SECRET,
-      { expiresIn: '7d' }
+      { expiresIn: '30d' } // 30 days instead of 7
     )
 
-    // Set HTTP-only cookie
-    res.setHeader('Set-Cookie', `auth-token=${token}; HttpOnly; Path=/; Max-Age=${7 * 24 * 60 * 60}; SameSite=Strict`)
+    // Set HTTP-only cookie with more lenient settings
+    res.setHeader('Set-Cookie', `auth-token=${token}; HttpOnly; Path=/; Max-Age=${30 * 24 * 60 * 60}; SameSite=Lax; Secure`)
 
     return res.status(200).json({
       success: true,
