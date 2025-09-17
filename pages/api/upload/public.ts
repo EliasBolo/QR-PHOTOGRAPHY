@@ -17,6 +17,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
+  // Ensure test users exist in Vercel's serverless environment
+  userDatabase.ensureTestUsers()
+
   try {
     // Parse the form data
     const form = formidable({

@@ -83,6 +83,7 @@ export default function MobileUpload() {
         setTimeout(() => setSuccess(''), 5000)
       } else {
         console.log('Upload failed:', result)
+        console.log('Debug details:', result.debug)
         setError(result.error || 'Upload failed. Please try again.')
       }
     } catch (error) {
