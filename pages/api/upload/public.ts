@@ -41,7 +41,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // Event not in database, try to find any user with Google Drive connected
       // This handles cases where events are stored in localStorage only
       const allUsers = userDatabase.getAllUsers()
+      console.log('All users in database:', allUsers.map(u => ({ 
+        email: u.email, 
+        googleDriveConnected: u.googleDriveConnected, 
+        hasTokens: !!u.googleDriveTokens 
+      })))
+      
       eventOwner = allUsers.find(user => user.googleDriveConnected && user.googleDriveTokens)
+      console.log('Found event owner:', eventOwner ? eventOwner.email : 'NONE')
       
       if (eventOwner) {
         // Create a temporary event object for the upload
@@ -59,6 +66,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
     
     if (!eventOwner || !eventOwner.googleDriveConnected || !eventOwner.googleDriveTokens || !event) {
+      console.log('Upload failed - missing requirements:', {
+        hasEventOwner: !!eventOwner,
+        googleDriveConnected: eventOwner?.googleDriveConnected,
+        hasTokens: !!eventOwner?.googleDriveTokens,
+        hasEvent: !!event
+      })
       return res.status(400).json({ error: 'No user with Google Drive connected found' })
     }
 
