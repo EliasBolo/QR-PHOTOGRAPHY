@@ -41,28 +41,39 @@ export default function QrList() {
           const eventsResponse = await fetch('/api/events')
           if (eventsResponse.ok) {
             const eventsResult = await eventsResponse.json()
-            // Merge server events with localStorage events
             const serverEvents = eventsResult.events || []
+            
+            // Create a map of localStorage events by ID for quick lookup
+            const localEventsMap = new Map()
+            userEvents.forEach((event: any) => {
+              localEventsMap.set(event.id, event)
+            })
+            
+            // Start with localStorage events, then update/add server events
             const mergedEvents = [...userEvents]
             
-            // Add server events that aren't already in localStorage, or update existing ones
             serverEvents.forEach((serverEvent: any) => {
-              const existingEventIndex = userEvents.findIndex((localEvent: any) => localEvent.id === serverEvent.id)
-              if (existingEventIndex === -1) {
-                // New event - add it
+              const existingEvent = localEventsMap.get(serverEvent.id)
+              if (existingEvent) {
+                // Update existing event with server data (including googleDriveFolderId)
+                const updatedEvent = {
+                  ...existingEvent,
+                  ...serverEvent,
+                  userEmail: userResult.user.email,
+                  qrCodeUrl: `/upload-mobile/${serverEvent.id}`
+                }
+                // Replace the existing event in the array
+                const index = mergedEvents.findIndex((e: any) => e.id === serverEvent.id)
+                if (index !== -1) {
+                  mergedEvents[index] = updatedEvent
+                }
+              } else {
+                // New event from server - add it
                 mergedEvents.push({
                   ...serverEvent,
                   userEmail: userResult.user.email,
                   qrCodeUrl: `/upload-mobile/${serverEvent.id}`
                 })
-              } else {
-                // Existing event - update it with server data (including googleDriveFolderId)
-                mergedEvents[existingEventIndex] = {
-                  ...mergedEvents[existingEventIndex],
-                  ...serverEvent,
-                  userEmail: userResult.user.email,
-                  qrCodeUrl: `/upload-mobile/${serverEvent.id}`
-                }
               }
             })
             
@@ -128,8 +139,27 @@ export default function QrList() {
     }
   }
 
+  // Clean up duplicates in localStorage
+  const cleanupDuplicates = () => {
+    const savedEvents = JSON.parse(localStorage.getItem('qrEvents') || '[]')
+    const uniqueEvents = new Map()
+    
+    // Keep only the latest version of each event (by ID)
+    savedEvents.forEach((event: any) => {
+      if (!uniqueEvents.has(event.id) || new Date(event.createdAt) > new Date(uniqueEvents.get(event.id).createdAt)) {
+        uniqueEvents.set(event.id, event)
+      }
+    })
+    
+    const cleanedEvents = Array.from(uniqueEvents.values())
+    localStorage.setItem('qrEvents', JSON.stringify(cleanedEvents))
+    return cleanedEvents
+  }
+
   // Load user and events on component mount
   useEffect(() => {
+    // Clean up duplicates first
+    cleanupDuplicates()
     loadUserAndEvents()
   }, [])
 
