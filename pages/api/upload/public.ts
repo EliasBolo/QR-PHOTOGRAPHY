@@ -47,8 +47,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         hasTokens: !!u.googleDriveTokens 
       })))
       
-      eventOwner = allUsers.find(user => user.googleDriveConnected && user.googleDriveTokens)
-      console.log('Found event owner:', eventOwner ? eventOwner.email : 'NONE')
+      // Try to find any user with Google Drive tokens (be more lenient)
+      eventOwner = allUsers.find(user => user.googleDriveTokens && user.googleDriveTokens.accessToken)
+      console.log('Found event owner (lenient):', eventOwner ? eventOwner.email : 'NONE')
+      
+      // If still not found, try to find any user with Google Drive connected flag
+      if (!eventOwner) {
+        eventOwner = allUsers.find(user => user.googleDriveConnected)
+        console.log('Found event owner (by flag):', eventOwner ? eventOwner.email : 'NONE')
+      }
       
       if (eventOwner) {
         // Create a temporary event object for the upload
@@ -65,11 +72,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     }
     
-    if (!eventOwner || !eventOwner.googleDriveConnected || !eventOwner.googleDriveTokens || !event) {
+    if (!eventOwner || !eventOwner.googleDriveTokens || !eventOwner.googleDriveTokens.accessToken || !event) {
       console.log('Upload failed - missing requirements:', {
         hasEventOwner: !!eventOwner,
         googleDriveConnected: eventOwner?.googleDriveConnected,
         hasTokens: !!eventOwner?.googleDriveTokens,
+        hasAccessToken: !!eventOwner?.googleDriveTokens?.accessToken,
         hasEvent: !!event
       })
       return res.status(400).json({ error: 'No user with Google Drive connected found' })
