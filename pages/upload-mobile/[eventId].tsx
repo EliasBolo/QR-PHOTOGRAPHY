@@ -71,6 +71,7 @@ export default function MobileUpload() {
       })
 
       const result = await response.json()
+      console.log('Upload response:', response.status, result)
 
       if (response.ok) {
         setUploadProgress(100)
@@ -81,6 +82,7 @@ export default function MobileUpload() {
         // Clear success message after 5 seconds
         setTimeout(() => setSuccess(''), 5000)
       } else {
+        console.log('Upload failed:', result)
         setError(result.error || 'Upload failed. Please try again.')
       }
     } catch (error) {

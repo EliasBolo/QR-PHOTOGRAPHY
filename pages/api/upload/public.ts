@@ -80,7 +80,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         hasAccessToken: !!eventOwner?.googleDriveTokens?.accessToken,
         hasEvent: !!event
       })
-      return res.status(400).json({ error: 'No user with Google Drive connected found' })
+      return res.status(400).json({ 
+        error: 'No user with Google Drive connected found',
+        debug: {
+          hasEventOwner: !!eventOwner,
+          googleDriveConnected: eventOwner?.googleDriveConnected,
+          hasTokens: !!eventOwner?.googleDriveTokens,
+          hasAccessToken: !!eventOwner?.googleDriveTokens?.accessToken,
+          hasEvent: !!event
+        }
+      })
     }
 
     const { GoogleDriveService } = await import('../../../lib/google-drive')
